@@ -27,4 +27,7 @@ The goal is to build a multi-target compiler that automatically detects the host
     ```
  
 
-### Supported architecture:
+### Supported architectures:
+
+### Add architecture
+
