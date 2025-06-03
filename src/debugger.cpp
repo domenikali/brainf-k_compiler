@@ -1,0 +1,106 @@
+#include "utils.hpp"
+#include "Architecture_Interface.cpp"
+#include <string.h>
+#include <stack>
+#include <vector>
+
+FILE* debug_file(std::string file_name){
+  file_name = file_name.substr(0, file_name.find_last_of('.')) + ".dbg"; // Ensure the file has .dbg extension
+  if (file_name.find_last_of('.') == std::string::npos) {
+    file_name += ".dbg"; // Append .dbg if no extension is present
+  }
+  FILE* file = fopen(file_name.c_str(), "w");
+  if (!file) {
+    std::cerr << "Error opening debug file: " << file_name << std::endl;
+    exit(EXIT_FAILURE);
+  }
+  return file;
+}
+
+void debug(int arg_count, char* args[],Compiler_Options options) {
+
+  FILE* debug_file_name = debug_file(options.source_file_name);
+  FILE* source_file = fopen(options.source_file_name.c_str(), "r");
+  if (!source_file) {
+    std::cerr << "Error opening source file: " << options.source_file_name << std::endl;
+    exit(EXIT_FAILURE);
+  }
+
+  std::cout << "Debugging information:" << std::endl;
+  std::cout << "Number of arguments: " << arg_count << std::endl;
+  for (int i = 0; i < arg_count; ++i) {
+      std::cout << "Argument " << i + 1 << ": " << args[i] << std::endl;
+  }
+  fprintf(debug_file_name, "Debugging information:\nDebug file: %s\n", options.source_file_name.c_str());
+  char ch;
+  uint64_t head = 0;
+  uint64_t size = options.max_memory > 100 ? 100 : options.max_memory; // Default size for Brainfuck memory
+  std::vector<uint8_t> memory(size, 0); // Initialize memory with zeros
+
+  std::string total_output="";
+  std::stack<uint64_t> cycle_stack; // Stack to manage cycles
+  uint64_t cycle_count = 0;
+  
+  while((ch=fgetc(source_file)) != EOF) {
+    switch (ch)
+    {
+    case '+':
+      fprintf(debug_file_name, "[Line %d]: Increased value at %ld from %u to %u.\n",cycle_count, head, memory[head], ++memory[head]);
+      break;
+    case '-':
+      fprintf(debug_file_name, "[Line %d]: Decreased value at %ld from %u to %u.\n",cycle_count, head, memory[head], --memory[head]);
+      break;
+    case '.':
+      fprintf(debug_file_name, "[Line %d]: Printing: value at %ld = %c.\n",cycle_count, head, memory[head]);
+      total_output += static_cast<char>(memory[head]);
+      break;
+    case ',':
+      char input_char;
+      std::cout << "[Line " <<cycle_count<<"]:Enter a character for input: ";
+      std::cin >> input_char;
+      memory[head] = static_cast<uint8_t>(input_char);
+      fprintf(debug_file_name, "[Line %d]: Input char %c at %ld\n", cycle_count, input_char, head);
+      break;
+    case '>':
+      if(head + 1 >= options.max_memory) {
+        fprintf(debug_file_name, "[Line %d]: Pointer overflow at %ld. Max memory: %ld.\n", cycle_count, head, options.max_memory);
+        std::cerr << "Pointer overflow at " << head << ". Max memory: " << options.max_memory << ". Exit Error." << std::endl;
+        goto ext;
+      } else if(head + 1 >= size) {
+        uint64_t inc = options.max_memory ? options.max_memory : size;
+        memory.resize(size + inc, 0); 
+        size += inc;
+      }
+
+      fprintf(debug_file_name, "[Line %d]: Pointer increased from %ld to %ld.\n",cycle_count, head, ++head);
+      break;
+    case '<':
+      if(head == 0) {
+        fprintf(debug_file_name, "[Line %d]: Pointer underflow at %ld.\n", cycle_count, head);
+        std::cerr << "Pointer underflow at " << head << ". Exit Error." << std::endl;
+        goto ext;
+      }
+
+      fprintf(debug_file_name, "[Line %d]: Pointer decremented from %ld to %ld.\n",cycle_count, head, --head);
+      break;
+    case '[':
+      fprintf(debug_file_name, "Cycle started.\n");
+      break;
+    case ']':
+      fprintf(debug_file_name, "Cycle ended.\n");
+      break;
+    
+    default:
+      break;
+    }
+    cycle_count++;
+  }
+  ext: 
+  fprintf(debug_file_name, "Line executed: %ld\n", cycle_count);
+  fprintf(debug_file_name, "Total output: %s\n", total_output.c_str());
+  fclose(source_file);
+  fclose(debug_file_name);
+  exit(EXIT_SUCCESS);
+
+}
+

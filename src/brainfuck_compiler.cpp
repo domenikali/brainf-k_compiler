@@ -2,30 +2,8 @@
 #include <sys/utsname.h>
 #include <string>
 #include <cstdint>
-
-std::string system_arch;
-
-void get_system_arch(){
-  struct utsname un;
-  if (uname(&un) == -1) {
-    perror("uname");
-    return;
-  }
-  
-  system_arch = un.machine; // Get the machine hardware name
-}
-
-struct Compiler_Options{
-  std::string source_file_name="";
-  std::string output_file_name="";
-  bool optimize = true; // Optimization flag
-  bool debug = false; // Debugging flag
-  bool verbose = false; // Verbose output flag
-  uint64_t max_cycles = 0; // Maximum cycles flag
-  uint64_t max_memory = 0; // Maximum memory flag
-  std::string target_arch = ""; // Default target architecture
-};
-typedef struct Compiler_Options Compiler_Options;
+#include "debugger.cpp"
+#include "utils.hpp"
 
 Compiler_Options get_compiler_options(int argc, char* argv[]) {
   Compiler_Options options;
@@ -83,7 +61,7 @@ Compiler_Options get_compiler_options(int argc, char* argv[]) {
       std::cout << "Usage: " << argv[0] << " [options] <source_file.bf>" << std::endl;
       std::cout << "Options:" << std::endl;
       std::cout << "\t-O, --optimize          Disable optimizations" << std::endl;
-      std::cout << "\t-D, --debug             Enable debugging information" << std::endl;
+      std::cout << "\t-D, --debug             Stop compilation and create a debug file with extended informations about the program" << std::endl;
       std::cout << "\t-V, --verbose           Enable verbose output" << std::endl;
       std::cout << "\t-C, --max-cycles <n>   Set maximum cycles to <n>, default 1000000" << std::endl;
       std::cout << "\t-M, --max-memory <n>   Set maximum memory to <n>, default 3000" << std::endl;
@@ -128,6 +106,11 @@ int main(int argc, char* argv[]) {
   std::cout << "Compiling Brainfuck source file: " << options.source_file_name << " as: "<<options.output_file_name<< std::endl;
   
   std::cout << "Architecture output: " << options.target_arch << std::endl;
+
+  if(options.debug) {
+    std::cout << "Debugging enabled." << std::endl;
+    debug(argc,argv, options);
+  }
 
 
 
