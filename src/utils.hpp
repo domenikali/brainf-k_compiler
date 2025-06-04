@@ -3,20 +3,21 @@
 #include <iostream>
 #include <sys/utsname.h>
 #include <cstdint>
+#include <vector>
 
-std::string system_arch;
+enum class CompilerArch {
+  X86,
+  X86_64,
+  ARM32,
+  ARM64,
+  RISCV,
+  DLX,
+  UNKNOWN
+};
 
-void get_system_arch(){
-  struct utsname un;
-  if (uname(&un) == -1) {
-    perror("uname");
-    return;
-  }
-  
-  system_arch = un.machine; // Get the machine hardware name
-}
+extern CompilerArch system_arch;
 
-struct Compiler_Options{
+struct CompilerOptions{
   std::string source_file_name="";
   std::string output_file_name="";
   bool optimize = true; // Optimization flag
@@ -24,10 +25,37 @@ struct Compiler_Options{
   bool verbose = false; // Verbose output flag
   uint64_t max_cycles = 0; // Maximum cycles flag
   uint64_t max_memory = 0; // Maximum memory flag
-  std::string target_arch = ""; // Default target architecture
+  CompilerArch target_arch=CompilerArch::UNKNOWN; // Default target architecture
 };
 typedef struct Compiler_Options Compiler_Options;
 
+CompilerArch getTargetArch(const std::string &arch);
 
+void getSystemArch();
+
+FILE * fileRead(const char *filename);
+
+FILE * fileWrite(const char *filename);
+
+enum class InstructionType{
+  ADD = '+',
+  SUB = '-',
+  INC = '>',    
+  DEC = '<',    
+  INPUT = ',',  
+  OUTPUT = '.', 
+  BNEQ = ']',  
+  BEQZ = '[',   
+};
+typedef enum InstructionType InstructionType;
+
+struct Instruction {
+  InstructionType type;
+  uint64_t times;       // Number of times this instruction is executed
+  uint64_t branch_address;     // Address of the branch instruction if targeted
+};
+typedef struct Instruction Instruction;
+
+typedef std::vector<Instruction> instructions_list;
 
 #endif 

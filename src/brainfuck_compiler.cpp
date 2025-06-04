@@ -2,11 +2,10 @@
 #include <sys/utsname.h>
 #include <string>
 #include <cstdint>
-#include "debugger.cpp"
-#include "utils.hpp"
+#include "debugger.hpp"
 
-Compiler_Options get_compiler_options(int argc, char* argv[]) {
-  Compiler_Options options;
+CompilerOptions getCompilerOptions(int argc, char* argv[]) {
+  CompilerOptions options;
 
   if(argc < 2) {
     std::cerr << "Usage: " << argv[0] << " <source_file.bf>" << std::endl;
@@ -38,7 +37,7 @@ Compiler_Options get_compiler_options(int argc, char* argv[]) {
       }
     } else if(arg == "--target-arch" || arg == "-T") {
       if (i + 1 < argc) {
-        options.target_arch = argv[++i];
+        options.target_arch = getTargetArch(argv[++i]);
       } else {
         std::cerr << "Error: --target-arch requires a value." << std::endl;
         exit(EXIT_FAILURE);
@@ -84,8 +83,8 @@ Compiler_Options get_compiler_options(int argc, char* argv[]) {
   if(options.output_file_name.empty()) {
     options.output_file_name = options.source_file_name.substr(0, options.source_file_name.find_last_of('.')) + ".asm";
   }
-  if(options.target_arch.empty()) {
-    get_system_arch();
+  if(options.target_arch==CompilerArch::UNKNOWN) {
+    getSystemArch();
     options.target_arch = system_arch; // Default detected system architecture
   }
   if(options.max_cycles == 0) {
@@ -98,14 +97,14 @@ Compiler_Options get_compiler_options(int argc, char* argv[]) {
 }
 
 
+
 int main(int argc, char* argv[]) {
   
 
-  Compiler_Options options = get_compiler_options(argc, argv);  
+  CompilerOptions options = getCompilerOptions(argc, argv);  
 
   std::cout << "Compiling Brainfuck source file: " << options.source_file_name << " as: "<<options.output_file_name<< std::endl;
   
-  std::cout << "Architecture output: " << options.target_arch << std::endl;
 
   if(options.debug) {
     std::cout << "Debugging enabled." << std::endl;

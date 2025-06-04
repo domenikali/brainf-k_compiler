@@ -1,8 +1,4 @@
-#include "utils.hpp"
-#include "Architecture_Interface.cpp"
-#include <string.h>
-#include <stack>
-#include <vector>
+#include "debugger.hpp"
 
 FILE* debug_file(std::string file_name){
   file_name = file_name.substr(0, file_name.find_last_of('.')) + ".dbg"; // Ensure the file has .dbg extension
@@ -17,20 +13,13 @@ FILE* debug_file(std::string file_name){
   return file;
 }
 
-void debug(int arg_count, char* args[],Compiler_Options options) {
+void debug(int arg_count, char* args[],CompilerOptions options) {
 
   FILE* debug_file_name = debug_file(options.source_file_name);
-  FILE* source_file = fopen(options.source_file_name.c_str(), "r");
-  if (!source_file) {
-    std::cerr << "Error opening source file: " << options.source_file_name << std::endl;
-    exit(EXIT_FAILURE);
-  }
+  FILE* source_file = fileRead(options.source_file_name.c_str());
 
-  std::cout << "Debugging information:" << std::endl;
-  std::cout << "Number of arguments: " << arg_count << std::endl;
-  for (int i = 0; i < arg_count; ++i) {
-      std::cout << "Argument " << i + 1 << ": " << args[i] << std::endl;
-  }
+  std::cout << "Debugging information: No .asm produced" << std::endl;
+  
   fprintf(debug_file_name, "Debugging information:\nDebug file: %s\n", options.source_file_name.c_str());
   char ch;
   uint64_t head = 0;
@@ -45,10 +34,12 @@ void debug(int arg_count, char* args[],Compiler_Options options) {
     switch (ch)
     {
     case '+':
-      fprintf(debug_file_name, "[Line %d]: Increased value at %ld from %u to %u.\n",cycle_count, head, memory[head], ++memory[head]);
+      fprintf(debug_file_name, "[Line %d]: Increased value at %ld from %u to %u.\n",cycle_count, head, memory[head], memory[head]+1);
+      memory[head]++;
       break;
     case '-':
-      fprintf(debug_file_name, "[Line %d]: Decreased value at %ld from %u to %u.\n",cycle_count, head, memory[head], --memory[head]);
+      fprintf(debug_file_name, "[Line %d]: Decreased value at %ld from %u to %u.\n",cycle_count, head, memory[head], memory[head]-1);
+      memory[head]--;
       break;
     case '.':
       fprintf(debug_file_name, "[Line %d]: Printing: value at %ld = %c.\n",cycle_count, head, memory[head]);
@@ -72,7 +63,8 @@ void debug(int arg_count, char* args[],Compiler_Options options) {
         size += inc;
       }
 
-      fprintf(debug_file_name, "[Line %d]: Pointer increased from %ld to %ld.\n",cycle_count, head, ++head);
+      fprintf(debug_file_name, "[Line %d]: Pointer increased from %ld to %ld.\n",cycle_count, head, head+1);
+      head++;
       break;
     case '<':
       if(head == 0) {
@@ -81,7 +73,8 @@ void debug(int arg_count, char* args[],Compiler_Options options) {
         goto ext;
       }
 
-      fprintf(debug_file_name, "[Line %d]: Pointer decremented from %ld to %ld.\n",cycle_count, head, --head);
+      fprintf(debug_file_name, "[Line %d]: Pointer decremented from %ld to %ld.\n",cycle_count, head, head-1);
+      head--;
       break;
     case '[':
       fprintf(debug_file_name, "Cycle started.\n");

@@ -33,3 +33,8 @@
 
 # VSCode
 .vscode/
+
+# MyCode
+*.dbg 
+*.asm 
+*.bf

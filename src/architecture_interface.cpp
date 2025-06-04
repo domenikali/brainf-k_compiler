@@ -12,9 +12,9 @@
  * This file is part of a larger project that compiles Brainfuck code into various architectures.
  * The project is designed to be modular, allowing for easy addition of new architectures by implementing this interface.
  */
-class Architecture_Interface {
+class ArchitectureInterface {
   public:
-    virtual ~Architecture_Interface() = default;
+    virtual ~ArchitectureInterface() = default;
 
     /**
      * @brief virtual function to start a program.
