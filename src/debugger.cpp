@@ -13,11 +13,10 @@ FILE* debug_file(std::string file_name){
   return file;
 }
 
-void debug(int arg_count, char* args[],CompilerOptions options) {
+void debug(instructions_list instructions, CompilerOptions options) {
 
   FILE* debug_file_name = debug_file(options.source_file_name);
-  FILE* source_file = fileRead(options.source_file_name.c_str());
-
+  verbose(options, "Debugging enabled. Debug file created: " + options.source_file_name);
   std::cout << "Debugging information: No .asm produced" << std::endl;
   
   fprintf(debug_file_name, "Debugging information:\nDebug file: %s\n", options.source_file_name.c_str());
@@ -28,33 +27,34 @@ void debug(int arg_count, char* args[],CompilerOptions options) {
 
   std::string total_output="";
   std::stack<uint64_t> cycle_stack; // Stack to manage cycles
-  uint64_t cycle_count = 0;
+  uint64_t pc = 0;
   
-  while((ch=fgetc(source_file)) != EOF) {
-    switch (ch)
+  while(pc<instructions.size()) {
+    Instruction instruction = instructions[pc];
+    switch (instruction.type)
     {
-    case '+':
-      fprintf(debug_file_name, "[Line %d]: Increased value at %ld from %u to %u.\n",cycle_count, head, memory[head], memory[head]+1);
+    case InstructionType::ADD:
+      fprintf(debug_file_name, "[Line %d]: Increased value at %ld from %u to %u.\n",pc, head, memory[head], memory[head]+1);
       memory[head]++;
       break;
-    case '-':
-      fprintf(debug_file_name, "[Line %d]: Decreased value at %ld from %u to %u.\n",cycle_count, head, memory[head], memory[head]-1);
+    case InstructionType::SUB:
+      fprintf(debug_file_name, "[Line %d]: Decreased value at %ld from %u to %u.\n",pc, head, memory[head], memory[head]-1);
       memory[head]--;
       break;
-    case '.':
-      fprintf(debug_file_name, "[Line %d]: Printing: value at %ld = %c.\n",cycle_count, head, memory[head]);
+    case InstructionType::OUTPUT:
+      fprintf(debug_file_name, "[Line %d]: Printing: value at %ld = %c.\n",pc, head, memory[head]);
       total_output += static_cast<char>(memory[head]);
       break;
-    case ',':
+    case InstructionType::INPUT:
       char input_char;
-      std::cout << "[Line " <<cycle_count<<"]:Enter a character for input: ";
+      std::cout << "[Line " <<pc<<"]:Enter a character for input: ";
       std::cin >> input_char;
       memory[head] = static_cast<uint8_t>(input_char);
-      fprintf(debug_file_name, "[Line %d]: Input char %c at %ld\n", cycle_count, input_char, head);
+      fprintf(debug_file_name, "[Line %d]: Input char %c at %ld\n", pc, input_char, head);
       break;
-    case '>':
+    case InstructionType::INC:
       if(head + 1 >= options.max_memory) {
-        fprintf(debug_file_name, "[Line %d]: Pointer overflow at %ld. Max memory: %ld.\n", cycle_count, head, options.max_memory);
+        fprintf(debug_file_name, "[Line %d]: Pointer overflow at %ld. Max memory: %ld.\n", pc, head, options.max_memory);
         std::cerr << "Pointer overflow at " << head << ". Max memory: " << options.max_memory << ". Exit Error." << std::endl;
         goto ext;
       } else if(head + 1 >= size) {
@@ -63,35 +63,43 @@ void debug(int arg_count, char* args[],CompilerOptions options) {
         size += inc;
       }
 
-      fprintf(debug_file_name, "[Line %d]: Pointer increased from %ld to %ld.\n",cycle_count, head, head+1);
+      fprintf(debug_file_name, "[Line %d]: Pointer increased from %ld to %ld.\n",pc, head, head+1);
       head++;
       break;
-    case '<':
+    case InstructionType::DEC:
       if(head == 0) {
-        fprintf(debug_file_name, "[Line %d]: Pointer underflow at %ld.\n", cycle_count, head);
+        fprintf(debug_file_name, "[Line %d]: Pointer underflow at %ld.\n", pc, head);
         std::cerr << "Pointer underflow at " << head << ". Exit Error." << std::endl;
         goto ext;
       }
 
-      fprintf(debug_file_name, "[Line %d]: Pointer decremented from %ld to %ld.\n",cycle_count, head, head-1);
+      fprintf(debug_file_name, "[Line %d]: Pointer decremented from %ld to %ld.\n",pc, head, head-1);
       head--;
       break;
-    case '[':
-      fprintf(debug_file_name, "Cycle started.\n");
+    case InstructionType::BEQZ:
+      if(memory[head] == 0) {
+        fprintf(debug_file_name, "[Line %d]: Pointer at %ld is zero, jumping to %ld.\n", pc, head, instruction.branch_address);
+        pc = instruction.branch_address; // Jump to the branch address
+      } else {
+        fprintf(debug_file_name, "[Line %d]: Pointer at %ld is non-zero, continuing.\n", pc, head);
+      }
       break;
-    case ']':
-      fprintf(debug_file_name, "Cycle ended.\n");
+    case InstructionType::BNEQ:
+      if(memory[head] != 0) {
+        fprintf(debug_file_name, "[Line %d]: Pointer at %ld is non-zero, jumping to %ld.\n", pc, head, instruction.branch_address);
+        pc = instruction.branch_address; // Jump to the branch address
+      } else {
+        fprintf(debug_file_name, "[Line %d]: Pointer at %ld is zero, continuing.\n", pc, head);
+      }
       break;
     
     default:
       break;
     }
-    cycle_count++;
+    pc++;
   }
   ext: 
-  fprintf(debug_file_name, "Line executed: %ld\n", cycle_count);
   fprintf(debug_file_name, "Total output: %s\n", total_output.c_str());
-  fclose(source_file);
   fclose(debug_file_name);
   exit(EXIT_SUCCESS);
 

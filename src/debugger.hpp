@@ -8,6 +8,6 @@
 #include <vector>
 
 FILE* debug_file(std::string file_name);
-void debug(int arg_count, char* args[],CompilerOptions options);
+void debug(instructions_list instructions, CompilerOptions options);
 
 #endif

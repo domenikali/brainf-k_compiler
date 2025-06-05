@@ -3,6 +3,8 @@
 #include <string>
 #include <cstdint>
 #include "debugger.hpp"
+#include <vector>
+#include <stack>
 
 CompilerOptions getCompilerOptions(int argc, char* argv[]) {
   CompilerOptions options;
@@ -96,6 +98,102 @@ CompilerOptions getCompilerOptions(int argc, char* argv[]) {
   return options;
 }
 
+std::vector<Instruction> translator(CompilerOptions options){ 
+  FILE * source_file = fileRead(options.source_file_name.c_str());
+  std::vector<Instruction> instructions;
+  char ch;
+  uint64_t pc = 0;
+
+  if(options.debug)
+    options.optimize = false; 
+
+  std::stack<uint64_t> cycle_stack;
+  while((ch=fgetc(source_file)) != EOF) {
+    Instruction instruction;
+    instruction.times = 1; 
+    instruction.branch_address = 0; 
+    instruction.type = InstructionType::UNKNOWN; 
+
+    switch (ch)
+    {
+    case '+':
+      while((ch=fgetc(source_file)) == '+'&&options.optimize) {
+        instruction.times++;
+      }
+      fseek(source_file, -1, SEEK_CUR); 
+      instruction.type = InstructionType::ADD;
+      instructions.push_back(instruction);
+      break;
+    case '-':
+      while((ch=fgetc(source_file)) == '-'&&options.optimize) {
+        instruction.times++;
+      }
+      fseek(source_file, -1, SEEK_CUR); 
+      instruction.type = InstructionType::SUB;
+      instructions.push_back(instruction);
+      break;
+    case '.':
+      while((ch=fgetc(source_file)) == '.'&&options.optimize) {
+        instruction.times++;
+      }
+      fseek(source_file, -1, SEEK_CUR); 
+      instruction.type = InstructionType::OUTPUT;
+      instructions.push_back(instruction);
+      break;
+    case ',':
+      while((ch=fgetc(source_file)) == ','&&options.optimize) {
+        instruction.times++;
+      }
+      fseek(source_file, -1, SEEK_CUR); 
+      instruction.type = InstructionType::INPUT;
+      instructions.push_back(instruction);
+      break;
+    case '>':
+      while((ch=fgetc(source_file)) == '->'&&options.optimize) {
+        instruction.times++;
+      }
+      fseek(source_file, -1, SEEK_CUR); 
+      instruction.type = InstructionType::INC;
+      instructions.push_back(instruction);
+      break;
+    case '<':
+      while((ch=fgetc(source_file)) == '<') {
+        instruction.times++;
+      }
+      fseek(source_file, -1, SEEK_CUR); 
+      instruction.type = InstructionType::DEC;
+      instructions.push_back(instruction);
+      break;
+    case '[':
+      instruction.type = InstructionType::BEQZ;
+      cycle_stack.push(pc); 
+      instructions.push_back(instruction);
+      break;
+    case ']':
+      if(cycle_stack.empty()) {
+        std::cerr << "Error: Unmatched ']' at program counter " << pc << std::endl;
+        fclose(source_file);
+        exit(EXIT_FAILURE);
+      }
+      instruction.type = InstructionType::BNEQ;
+      instruction.branch_address = cycle_stack.top();
+      cycle_stack.pop();
+      instructions[instruction.branch_address].branch_address = pc; 
+      instructions.push_back(instruction);
+      break;
+    default:
+      // Ignore any other characters
+      break;
+    }
+  }
+  if(!cycle_stack.empty()){
+    std::cerr << "Error: Unmatched '[' at program counter " << cycle_stack.top() << std::endl;
+    fclose(source_file);
+    exit(EXIT_FAILURE);
+  }
+  fclose(source_file);
+  return instructions;
+}
 
 
 int main(int argc, char* argv[]) {
@@ -105,10 +203,12 @@ int main(int argc, char* argv[]) {
 
   std::cout << "Compiling Brainfuck source file: " << options.source_file_name << " as: "<<options.output_file_name<< std::endl;
   
-
+  verbose(options, "Compiler options setted");
+  instructions_list instructions = translator(options);
+  verbose(options, "Translation completed");
   if(options.debug) {
     std::cout << "Debugging enabled." << std::endl;
-    debug(argc,argv, options);
+    debug(instructions, options);
   }
 
 

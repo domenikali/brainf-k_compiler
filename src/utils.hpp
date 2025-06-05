@@ -37,7 +37,9 @@ FILE * fileRead(const char *filename);
 
 FILE * fileWrite(const char *filename);
 
-enum class InstructionType{
+void verbose(CompilerOptions options, const std::string &message);
+
+enum InstructionType{
   ADD = '+',
   SUB = '-',
   INC = '>',    
@@ -45,7 +47,8 @@ enum class InstructionType{
   INPUT = ',',  
   OUTPUT = '.', 
   BNEQ = ']',  
-  BEQZ = '[',   
+  BEQZ = '[',  
+  UNKNOWN = '?' // Unknown instruction 
 };
 typedef enum InstructionType InstructionType;
 

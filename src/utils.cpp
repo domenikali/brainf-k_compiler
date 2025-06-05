@@ -48,3 +48,9 @@ FILE * fileRead(const char *filename) {
   }
   return file;
 }
+
+void verbose(CompilerOptions options, const std::string &message) {
+  if (options.verbose) {
+    std::cout << message << std::endl;
+  }
+}
