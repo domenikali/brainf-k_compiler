@@ -109,6 +109,7 @@ std::vector<Instruction> translator(CompilerOptions options){
 
   std::stack<uint64_t> cycle_stack;
   while((ch=fgetc(source_file)) != EOF) {
+    std::cout<<ftell(source_file)<<std::endl;
     Instruction instruction;
     instruction.times = 1; 
     instruction.branch_address = 0; 
@@ -120,7 +121,7 @@ std::vector<Instruction> translator(CompilerOptions options){
       while((ch=fgetc(source_file)) == '+'&&options.optimize) {
         instruction.times++;
       }
-      fseek(source_file, -1, SEEK_CUR); 
+      if(ch != EOF) fseek(source_file, -1, SEEK_CUR); 
       instruction.type = InstructionType::ADD;
       instructions.push_back(instruction);
       break;
@@ -128,7 +129,7 @@ std::vector<Instruction> translator(CompilerOptions options){
       while((ch=fgetc(source_file)) == '-'&&options.optimize) {
         instruction.times++;
       }
-      fseek(source_file, -1, SEEK_CUR); 
+      if(ch != EOF) fseek(source_file, -1, SEEK_CUR); 
       instruction.type = InstructionType::SUB;
       instructions.push_back(instruction);
       break;
@@ -136,7 +137,7 @@ std::vector<Instruction> translator(CompilerOptions options){
       while((ch=fgetc(source_file)) == '.'&&options.optimize) {
         instruction.times++;
       }
-      fseek(source_file, -1, SEEK_CUR); 
+      if(ch != EOF) fseek(source_file, -1, SEEK_CUR); 
       instruction.type = InstructionType::OUTPUT;
       instructions.push_back(instruction);
       break;
@@ -144,23 +145,23 @@ std::vector<Instruction> translator(CompilerOptions options){
       while((ch=fgetc(source_file)) == ','&&options.optimize) {
         instruction.times++;
       }
-      fseek(source_file, -1, SEEK_CUR); 
+      if(ch != EOF) fseek(source_file, -1, SEEK_CUR); 
       instruction.type = InstructionType::INPUT;
       instructions.push_back(instruction);
       break;
     case '>':
-      while((ch=fgetc(source_file)) == '->'&&options.optimize) {
+      while((ch=fgetc(source_file)) == '>'&&options.optimize) {
         instruction.times++;
       }
-      fseek(source_file, -1, SEEK_CUR); 
+      if(ch != EOF) fseek(source_file, -1, SEEK_CUR); 
       instruction.type = InstructionType::INC;
       instructions.push_back(instruction);
       break;
     case '<':
-      while((ch=fgetc(source_file)) == '<') {
+      while((ch=fgetc(source_file)) == '<'&&options.optimize) {
         instruction.times++;
       }
-      fseek(source_file, -1, SEEK_CUR); 
+      if(ch != EOF) fseek(source_file, -1, SEEK_CUR); 
       instruction.type = InstructionType::DEC;
       instructions.push_back(instruction);
       break;
@@ -182,9 +183,9 @@ std::vector<Instruction> translator(CompilerOptions options){
       instructions.push_back(instruction);
       break;
     default:
-      // Ignore any other characters
       break;
     }
+    pc++;
   }
   if(!cycle_stack.empty()){
     std::cerr << "Error: Unmatched '[' at program counter " << cycle_stack.top() << std::endl;
