@@ -3,29 +3,29 @@ SHELL = /bin/bash
 CC = g++
 CFLAGS = -Wall -Wextra -std=c++20
 
-# source
+# Source files (.cpp)
 MAIN = src/brainfuck_compiler.cpp
-INTERFACE = src/architecture_interface.cpp
 UTILS = src/utils.cpp
 DEBUG = src/debugger.cpp
 
-# Header 
+# Header files (.hpp) - solo per dipendenze
 UTILS_H = src/utils.hpp
 DEBUG_H = src/debugger.hpp
+ARCH_INTERFACE_H = src/architecture_interface.hpp
+ARM32_H = src/architectures/arm32.hpp
 
-OBJS = src/brainfuck_compiler.o src/architecture_interface.o src/utils.o src/debugger.o
+# Object files - RIMUOVI architecture_interface.o perché non esiste più il .cpp
+OBJS = src/brainfuck_compiler.o src/utils.o src/debugger.o
 TARGET = bc
 
 all: $(TARGET)
 
 $(TARGET): $(OBJS)
 	$(CC) $(CFLAGS) -o $(TARGET) $(OBJS)
-	
-src/brainfuck_compiler.o: $(MAIN) $(UTILS_H) $(DEBUG_H)
-	$(CC) $(CFLAGS) -c $(MAIN) -o $@
 
-src/architecture_interface.o: $(INTERFACE) $(UTILS_H)
-	$(CC) $(CFLAGS) -c $(INTERFACE) -o $@
+# Dipendenze corrette con tutti gli header necessari
+src/brainfuck_compiler.o: $(MAIN) $(UTILS_H) $(DEBUG_H) $(ARCH_INTERFACE_H) $(ARM32_H)
+	$(CC) $(CFLAGS) -c $(MAIN) -o $@
 
 src/utils.o: $(UTILS) $(UTILS_H)
 	$(CC) $(CFLAGS) -c $(UTILS) -o $@

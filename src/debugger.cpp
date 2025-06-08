@@ -31,8 +31,7 @@ void debug(instructions_list instructions, CompilerOptions options) {
   
   while(pc<instructions.size()) {
     Instruction instruction = instructions[pc];
-    switch (instruction.type)
-    {
+    switch (instruction.type){
     case InstructionType::ADD:
       fprintf(debug_file_name, "[PC %d]: Increased value at %ld from %u to %u.\n",pc, head, memory[head], memory[head]+1);
       memory[head]++;

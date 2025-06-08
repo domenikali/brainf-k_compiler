@@ -2,7 +2,7 @@
 #define DEBUGGER_HPP
 
 #include "utils.hpp"
-#include "architecture_interface.cpp"
+#include "architecture_interface.hpp"
 #include <string.h>
 #include <stack>
 #include <vector>

@@ -1,4 +1,9 @@
+#ifndef ARCH_INTERFACE_H
+#define ARCH_INTERFACE_H
+
 #include <iostream>
+#include <cstdint>
+
 
 /**
  * @file Architecture_Interface.h
@@ -33,47 +38,48 @@ class ArchitectureInterface {
      * this function returns a string that represents the addition operation in the specific architecture.
      * @return std::string representing the addition operation.
     */
-    virtual std::string add()=0;
+    virtual std::string add(uint8_t count)=0;
     /**
      * @brief virtual function to subtract one from the current pointer value.
      * this function returns a string that represents the subtraction operation in the specific architecture.
      * @return std::string representing the subtraction operation.
     */
-    virtual std::string subtract()=0;
+    virtual std::string sub(uint8_t count)=0;
     /**
      * @brief virtual function to print the current pointer value.
      * this function returns a string that represents the print operation in the specific architecture.
      * @return std::string representing the print operation.
     */
-    virtual std::string print()=0;
+    virtual std::string output(uint8_t count)=0;
     /**
      * @brief virtual function to read input into the current pointer value.
      * this function returns a string that represents the input operation in the specific architecture.
      * @return std::string representing the input operation.
     */
-    virtual std::string input()=0;
+    virtual std::string input(uint8_t count)=0;
     /**
      * @brief virtual function to increment the current pointer.
      * this function returns a string that represents the increment pointer operation in the specific architecture.
      * @return std::string representing the increment pointer operation.
     */
-    virtual std::string incrementPointer()=0;
+    virtual std::string inc(uint8_t count)=0;
     /**
      * @brief virtual function to decrement the current pointer.
      * this function returns a string that represents the decrement pointer operation in the specific architecture.
      * @return std::string representing the decrement pointer operation.
     */
-    virtual std::string decrementPointer()=0;
+    virtual std::string dec(uint8_t count)=0;
     /**
      * @brief virtual function to start a cycle.
-     * this function returns a string that represents the start of a cycle in the specific architecture.
+     * this function returns a string that represents the branch operation if the current cell is equal to zero.
      * @return std::string representing the start of a cycle.
     */
-    virtual std::string startCycle()=0;
+    virtual std::string bneq()=0;
     /**
      * @brief virtual function to end a cycle.
-     * this function returns a string that represents the end of a cycle in the specific architecture.
+     * this function returns a string that represents the branch operation if the current cell is not equal to zero.
      * @return std::string representing the end of a cycle.
     */
-    virtual std::string endCycle()=0;
+    virtual std::string beqz()=0;
 };
+#endif 

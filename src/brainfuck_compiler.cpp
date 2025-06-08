@@ -3,7 +3,10 @@
 #include <string>
 #include <cstdint>
 #include "debugger.hpp"
+#include "architecture_interface.hpp"
 #include <vector>
+#include "architectures/arm32.hpp"
+
 #include <stack>
 
 CompilerOptions getCompilerOptions(int argc, char* argv[]) {
@@ -109,7 +112,6 @@ std::vector<Instruction> translator(CompilerOptions options){
 
   std::stack<uint64_t> cycle_stack;
   while((ch=fgetc(source_file)) != EOF) {
-    std::cout<<ftell(source_file)<<std::endl;
     Instruction instruction;
     instruction.times = 1; 
     instruction.branch_address = 0; 
@@ -196,6 +198,53 @@ std::vector<Instruction> translator(CompilerOptions options){
   return instructions;
 }
 
+void compiler(instructions_list instructions,CompilerOptions options){
+  //TODO: architeture dependent code generation
+  ArchitectureInterface *arch = new ARM32();
+
+  uint64_t pc =0;
+  std::string program = arch->proStart();
+  for(Instruction instruction : instructions){
+    switch(instruction.type){
+      case InstructionType::ADD:
+        program = arch->add(instruction.times);
+      break;
+      case InstructionType::SUB:
+        program = arch->sub(instruction.times);
+      break;
+      case InstructionType::INC:
+        program = arch->inc(instruction.times);
+      break;
+      case InstructionType::DEC:
+        program = arch->dec(instruction.times);
+      break;
+      case InstructionType::INPUT:
+        program = arch->input(instruction.times);
+      break;
+      case InstructionType::OUTPUT:
+        program = arch->output(instruction.times);
+      break;
+      case InstructionType::BEQZ:
+        program = arch->beqz();
+      break;
+      case InstructionType::BNEQ:
+        program = arch->bneq();
+      break; 
+    }
+    pc++;
+  }
+  program = arch->proEnd();
+  verbose(options, "Compilation completed successfully.");
+  std::cout << "Output written to: " << options.output_file_name << std::endl;
+  std::cout << "Program size: " << instructions.size() << " instructions." << std::endl;
+  delete arch; // Clean up architecture object
+  FILE * outputFile = fileWrite(options.output_file_name.c_str());
+  fprintf(outputFile, "%s", program.c_str());
+  fclose(outputFile);
+  verbose(options, "Output file written successfully.");
+
+}
+
 
 int main(int argc, char* argv[]) {
   
@@ -211,6 +260,8 @@ int main(int argc, char* argv[]) {
     std::cout << "Debugging enabled." << std::endl;
     debug(instructions, options);
   }
+
+  compiler(instructions,options);
 
 
 
