@@ -39,7 +39,9 @@ run: $(TARGET)
 clean:
 	rm -f $(OBJS) $(TARGET)
 	rm -f src/*.o
+	rm -f *.o
 	rm -f *.dbg
 	rm -f *.asm
+	rm -f *.bin
 
 .PHONY: all clean run

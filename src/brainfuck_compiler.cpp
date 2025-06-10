@@ -203,37 +203,38 @@ void compiler(instructions_list instructions,CompilerOptions options){
   ArchitectureInterface *arch = new ARM32();
 
   uint64_t pc =0;
-  std::string program = arch->proStart();
+  std::string program ="";
+  program+= arch->proStart(options.max_memory);
   for(Instruction instruction : instructions){
     switch(instruction.type){
       case InstructionType::ADD:
-        program = arch->add(instruction.times);
+        program += arch->add(instruction.times);
       break;
       case InstructionType::SUB:
-        program = arch->sub(instruction.times);
+        program += arch->sub(instruction.times);
       break;
       case InstructionType::INC:
-        program = arch->inc(instruction.times);
+        program += arch->inc(instruction.times);
       break;
       case InstructionType::DEC:
-        program = arch->dec(instruction.times);
+        program += arch->dec(instruction.times);
       break;
       case InstructionType::INPUT:
-        program = arch->input(instruction.times);
+        program += arch->input(instruction.times);
       break;
       case InstructionType::OUTPUT:
-        program = arch->output(instruction.times);
+        program += arch->output(instruction.times);
       break;
       case InstructionType::BEQZ:
-        program = arch->beqz();
+        program += arch->beqz(pc,instruction.branch_address);
       break;
       case InstructionType::BNEQ:
-        program = arch->bneq();
+        program += arch->bneq(pc,instruction.branch_address);
       break; 
     }
     pc++;
   }
-  program = arch->proEnd();
+  program += arch->proEnd();
   verbose(options, "Compilation completed successfully.");
   std::cout << "Output written to: " << options.output_file_name << std::endl;
   std::cout << "Program size: " << instructions.size() << " instructions." << std::endl;
@@ -242,6 +243,7 @@ void compiler(instructions_list instructions,CompilerOptions options){
   fprintf(outputFile, "%s", program.c_str());
   fclose(outputFile);
   verbose(options, "Output file written successfully.");
+  verbose(options,program.c_str());
 
 }
 

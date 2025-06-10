@@ -38,3 +38,6 @@
 *.dbg 
 *.asm 
 *.bf
+tests/
+test
+*.bin

@@ -26,7 +26,7 @@ class ArchitectureInterface {
      * this function returns a string that represents the start of a program in the specific architecture.
      * @return std::string representing the start of a program.
     */
-    virtual std::string proStart()=0;
+    virtual std::string proStart(uint64_t tape_size)=0;
     /**
      * @brief virtual function to end a program.
      * this function returns a string that represents the end of a program in the specific architecture.
@@ -74,12 +74,12 @@ class ArchitectureInterface {
      * this function returns a string that represents the branch operation if the current cell is equal to zero.
      * @return std::string representing the start of a cycle.
     */
-    virtual std::string bneq()=0;
+    virtual std::string bneq(uint64_t pc, uint64_t jump)=0;
     /**
      * @brief virtual function to end a cycle.
      * this function returns a string that represents the branch operation if the current cell is not equal to zero.
      * @return std::string representing the end of a cycle.
     */
-    virtual std::string beqz()=0;
+    virtual std::string beqz(uint64_t pc, uint64_t jump)=0;
 };
 #endif 
