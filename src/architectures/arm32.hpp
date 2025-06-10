@@ -8,7 +8,7 @@ class ARM32: public ArchitectureInterface {
     };
 
     std::string proStart(uint64_t tape_size)override{
-      return ".bss\n.lcomm tape,"+std::to_string(tape_size)+"\n.text\n.global _start \n_start:\nldr r1, =tape\n";
+      return ".bss\n.lcomm tape,"+std::to_string(tape_size)+"\n.text\n.global _start \n_start:\nldr r1, =tape\nmov r2,#1\n";
     };
     
     virtual std::string proEnd()override{
@@ -16,19 +16,19 @@ class ARM32: public ArchitectureInterface {
     };
     
     virtual std::string add(uint8_t count)override{
-      return "ldrb r2, [r1]\nadd r2,r2,#"+std::to_string(count)+"\nstrb r2, [r1]\n";
+      return "ldrb r0, [r1]\nadd r0,r0,#"+std::to_string(count)+"\nstrb r0, [r1]\n";
     };
     
     virtual std::string sub(uint8_t count)override{
-      return "ldrb r2, [r1]\nsub r2,r2,#"+std::to_string(count)+"\nstrb r2, [r1]\n";
+      return "ldrb r0, [r1]\nsub r0,r0,#"+std::to_string(count)+"\nstrb r0, [r1]\n";
     };
     
     virtual std::string output(uint8_t count)override{
-      return "mov r7,#4\nmov r0,#1\nmov r2,#1\nswi 0\n";
+      return "mov r7,#4\nmov r0,#1\nswi 0\n";
     };
     
     virtual std::string input(uint8_t count)override{
-      return "";
+      return "mov r7,#3\nmov r0,#1\nswi 0\n";
     };
     
     virtual std::string inc(uint8_t count)override{
