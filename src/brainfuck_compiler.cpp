@@ -6,6 +6,7 @@
 #include "architecture_interface.hpp"
 #include <vector>
 #include "architectures/arm32.hpp"
+#include "architectures/x86.hpp"
 
 #include <stack>
 
@@ -136,18 +137,10 @@ std::vector<Instruction> translator(CompilerOptions options){
       instructions.push_back(instruction);
       break;
     case '.':
-      while((ch=fgetc(source_file)) == '.'&&options.optimize) {
-        instruction.times++;
-      }
-      if(ch != EOF) fseek(source_file, -1, SEEK_CUR); 
       instruction.type = InstructionType::OUTPUT;
       instructions.push_back(instruction);
       break;
     case ',':
-      while((ch=fgetc(source_file)) == ','&&options.optimize) {
-        instruction.times++;
-      }
-      if(ch != EOF) fseek(source_file, -1, SEEK_CUR); 
       instruction.type = InstructionType::INPUT;
       instructions.push_back(instruction);
       break;
@@ -200,7 +193,7 @@ std::vector<Instruction> translator(CompilerOptions options){
 
 void compiler(instructions_list instructions,CompilerOptions options){
   //TODO: architeture dependent code generation
-  ArchitectureInterface *arch = new ARM32();
+  ArchitectureInterface *arch = new X86();
 
   uint64_t pc =0;
   std::string program ="";
@@ -265,6 +258,12 @@ int main(int argc, char* argv[]) {
 
   compiler(instructions,options);
 
+  uint8_t *memory = new uint8_t[options.max_memory];
+  if(memory == nullptr) {
+    std::cerr << "Error: Memory allocation failed." << std::endl;
+    exit(EXIT_FAILURE);
+  }
+  printf("%x\n",memory);
 
 
   return 0;
