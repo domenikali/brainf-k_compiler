@@ -30,6 +30,7 @@ The goal is to build a multi-target compiler that automatically detects the host
 ### Supported architectures:
 
  ARM32
+ x86
  
 
 ### Add architecture
