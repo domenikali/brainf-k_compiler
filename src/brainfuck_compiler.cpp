@@ -94,7 +94,7 @@ CompilerOptions getCompilerOptions(int argc, char* argv[]) {
     options.target_arch = system_arch; // Default detected system architecture
   }
   if(options.max_cycles == 0) {
-    options.max_cycles = 1000000; // Default maximum cycles
+    options.max_cycles = 1000000; // Default maximum cycles, i kind of not use this option but maybe?
   }
   if(options.max_memory == 0) {
     options.max_memory = 30000; // Default maximum memory size
@@ -192,8 +192,7 @@ std::vector<Instruction> translator(CompilerOptions options){
 }
 
 void compiler(instructions_list instructions,CompilerOptions options){
-  //TODO: architeture dependent code generation
-  ArchitectureInterface *arch = new X86();
+  ArchitectureInterface *arch = getCompArch(options.target_arch);
 
   uint64_t pc =0;
   std::string program ="";

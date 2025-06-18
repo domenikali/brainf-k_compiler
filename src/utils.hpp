@@ -4,14 +4,17 @@
 #include <sys/utsname.h>
 #include <cstdint>
 #include <vector>
+#include "architecture_interface.hpp"
+#include "architectures/x86.hpp"
+#include "architectures/arm32.hpp"
 
 enum class CompilerArch {
-  X86,
-  X86_64,
-  ARM32,
-  ARM64,
-  RISCV,
-  DLX,
+  X86_A,
+  X86_64_A,
+  ARM32_A,
+  ARM64_A,
+  RISCV_A,
+  DLX_A,
   UNKNOWN
 };
 
@@ -60,5 +63,7 @@ struct Instruction {
 typedef struct Instruction Instruction;
 
 typedef std::vector<Instruction> instructions_list;
+
+ArchitectureInterface * getCompArch(CompilerArch target_arch);
 
 #endif 
