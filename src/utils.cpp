@@ -59,8 +59,21 @@ ArchitectureInterface * getCompArch(CompilerArch target_arch){
   switch (target_arch) {
     case CompilerArch::X86_A:
       return new X86();
+    case CompilerArch::X86_64_A:
+      return new X86();
     case CompilerArch::ARM32_A:
       return new ARM32();
-    case CompilerArch::ARM64_A:
   }
+  return NULL;
+}
+
+ArchitectureInterface * getJITArch(CompilerArch target_arch){
+  switch (target_arch) {
+    case CompilerArch::X86_A:
+      return new X86JIT();
+    case CompilerArch::X86_64_A:
+      return new X86JIT();
+    
+  }
+  return NULL;
 }

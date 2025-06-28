@@ -5,8 +5,9 @@
 #include <cstdint>
 #include <vector>
 #include "architecture_interface.hpp"
-#include "architectures/x86.hpp"
-#include "architectures/arm32.hpp"
+#include "comp_arch/x86.hpp"
+#include "comp_arch/arm32.hpp"
+#include "jit_arch/x86_jit.hpp"
 
 enum class CompilerArch {
   X86_A,
@@ -29,6 +30,7 @@ struct CompilerOptions{
   uint64_t max_cycles = 0; // Maximum cycles flag
   uint64_t max_memory = 0; // Maximum memory flag
   CompilerArch target_arch=CompilerArch::UNKNOWN; // Default target architecture
+  bool jit = false; // Just-In-Time compilation flag
 };
 typedef struct Compiler_Options Compiler_Options;
 
@@ -65,5 +67,6 @@ typedef struct Instruction Instruction;
 typedef std::vector<Instruction> instructions_list;
 
 ArchitectureInterface * getCompArch(CompilerArch target_arch);
+ArchitectureInterface * getJITArch(CompilerArch target_arch);
 
 #endif 

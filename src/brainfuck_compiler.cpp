@@ -5,8 +5,8 @@
 #include "debugger.hpp"
 #include "architecture_interface.hpp"
 #include <vector>
-#include "architectures/arm32.hpp"
-#include "architectures/x86.hpp"
+#include "comp_arch/arm32.hpp"
+#include "comp_arch/x86.hpp"
 
 #include <stack>
 
@@ -25,6 +25,8 @@ CompilerOptions getCompilerOptions(int argc, char* argv[]) {
       options.optimize = true;
     } else if(arg == "--debug" || arg == "-D") {
       options.debug = true;
+    } else if(arg == "--jit" || arg == "-J") {
+      options.jit = true;
     } else if(arg == "--verbose" || arg == "-V") {
       options.verbose = true;
     } else if(arg == "--max-cycles" || arg == "-C") {
@@ -66,11 +68,12 @@ CompilerOptions getCompilerOptions(int argc, char* argv[]) {
       std::cout << "Usage: " << argv[0] << " [options] <source_file.bf>" << std::endl;
       std::cout << "Options:" << std::endl;
       std::cout << "\t-O, --optimize          Disable optimizations" << std::endl;
+      std::cout << "\t-J, --jit               Enable Just In Time Compiler" << std::endl;
       std::cout << "\t-D, --debug             Stop compilation and create a debug file with extended informations about the program" << std::endl;
       std::cout << "\t-V, --verbose           Enable verbose output" << std::endl;
-      std::cout << "\t-C, --max-cycles <n>   Set maximum cycles to <n>, default 1000000" << std::endl;
-      std::cout << "\t-M, --max-memory <n>   Set maximum memory to <n>, default 3000" << std::endl;
-      std::cout << "\t-T, --target-arch <arch> Set target architecture, default detect sys arch" << std::endl;
+      std::cout << "\t-C, --max-cycles <n>    Set maximum cycles to <n>, default 1000000" << std::endl;
+      std::cout << "\t-M, --max-memory <n>    Set maximum memory to <n>, default 3000" << std::endl;
+      std::cout << "\t-T, --target-arch <arch>Set target architecture, default detect sys arch" << std::endl;
       std::cout << "\t-N, --name <name>       Set output file name, default source file" << std::endl;
       std::cout << "\t-h, --help              Show this help message" << std::endl;
       exit(0);
@@ -102,7 +105,7 @@ CompilerOptions getCompilerOptions(int argc, char* argv[]) {
   return options;
 }
 
-std::vector<Instruction> translator(CompilerOptions options){ 
+std::vector<Instruction> lexer(CompilerOptions options){ 
   FILE * source_file = fileRead(options.source_file_name.c_str());
   std::vector<Instruction> instructions;
   char ch;
@@ -193,6 +196,7 @@ std::vector<Instruction> translator(CompilerOptions options){
 
 void compiler(instructions_list instructions,CompilerOptions options){
   ArchitectureInterface *arch = getCompArch(options.target_arch);
+  verbose(options, "Target architecture: " );
 
   uint64_t pc =0;
   std::string program ="";
@@ -239,30 +243,80 @@ void compiler(instructions_list instructions,CompilerOptions options){
 
 }
 
+void jit_compiler(instructions_list instructions,CompilerOptions options){
+  ArchitectureInterface *arch = getJITArch(options.target_arch); 
+
+  uint64_t pc =0;
+  std::string code ="";
+  code+= arch->proStart(options.max_memory);
+  for(Instruction instruction : instructions){
+    switch(instruction.type){
+      case InstructionType::ADD:
+        code += arch->add(instruction.times);
+      break;
+      case InstructionType::SUB:
+        code += arch->sub(instruction.times);
+      break;
+      case InstructionType::INC:
+        code += arch->inc(instruction.times);
+      break;
+      case InstructionType::DEC:
+        code += arch->dec(instruction.times);
+      break;
+      case InstructionType::INPUT:
+        code += arch->input(instruction.times);
+      break;
+      case InstructionType::OUTPUT:
+        code += arch->output(instruction.times);
+      break;
+      case InstructionType::BEQZ:
+        code += arch->beqz(pc,instruction.branch_address);
+      break;
+      case InstructionType::BNEQ:
+        code += arch->bneq(pc,instruction.branch_address);
+      break; 
+    }
+    pc++;
+  }
+  code += arch->proEnd();
+  verbose(options, "Compilation completed successfully.");
+
+  
+  delete arch; // Clean up architecture object
+}
+
 
 int main(int argc, char* argv[]) {
+
   
+
 
   CompilerOptions options = getCompilerOptions(argc, argv);  
 
   std::cout << "Compiling Brainfuck source file: " << options.source_file_name << " as: "<<options.output_file_name<< std::endl;
   
   verbose(options, "Compiler options setted");
-  instructions_list instructions = translator(options);
+  instructions_list instructions = lexer(options);
   verbose(options, "Translation completed");
   if(options.debug) {
     std::cout << "Debugging enabled." << std::endl;
     debug(instructions, options);
   }
-
-  compiler(instructions,options);
-
-  uint8_t *memory = new uint8_t[options.max_memory];
-  if(memory == nullptr) {
-    std::cerr << "Error: Memory allocation failed." << std::endl;
-    exit(EXIT_FAILURE);
+  if(options.jit) {
+    verbose(options, "Just-In-Time compilation enabled.");
+    jit_compiler(instructions, options);
   }
-  printf("%x\n",memory);
+  else{
+    verbose(options, "Compiling..."); 
+    compiler(instructions,options);
+
+  }
+  // uint8_t *memory = new uint8_t[options.max_memory];
+  // if(memory == nullptr) {
+  //   std::cerr << "Error: Memory allocation failed." << std::endl;
+  //   exit(EXIT_FAILURE);
+  // }
+  // printf("%x\n",memory);
 
 
   return 0;

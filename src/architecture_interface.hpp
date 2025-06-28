@@ -3,6 +3,9 @@
 
 #include <iostream>
 #include <cstdint>
+#include <sstream>
+#include <iomanip>
+
 
 
 /**
@@ -81,5 +84,31 @@ class ArchitectureInterface {
      * @return std::string representing the end of a cycle.
     */
     virtual std::string beqz(uint64_t pc, uint64_t jump)=0;
+    /**
+     * @brief Converts a 64-bit unsigned integer to a hexadecimal string representation.
+     * 
+     * This function takes a 64-bit unsigned integer and converts it into a hexadecimal string format,
+     * with each byte represented as a two-digit hexadecimal number prefixed by "\x".
+     * 
+     * @param value The 64-bit unsigned integer to convert.
+     * @return A string representing the hexadecimal format of the input value.
+     */
+    std::string toHex(uint64_t value) {
+      unsigned char bytes[4];
+      
+      bytes[0] = (value >> 24) & 0xFF;
+      bytes[1] = (value >> 16) & 0xFF;
+      bytes[2] = (value >> 8) & 0xFF;
+      bytes[3] = value & 0xFF;
+      
+      std::stringstream ss;
+      ss << std::hex << std::uppercase << std::setfill('0')<<"\\x";
+      ss << std::setw(2) << static_cast<int>(bytes[3])<<"\\x";
+      ss << std::setw(2) << static_cast<int>(bytes[2])<<"\\x";
+      ss << std::setw(2) << static_cast<int>(bytes[1])<<"\\x";
+      ss << std::setw(2) << static_cast<int>(bytes[0]);
+      return ss.str();
+    }
+    
 };
 #endif 
