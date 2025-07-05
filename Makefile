@@ -13,7 +13,7 @@ UTILS_H = src/utils.hpp
 DEBUG_H = src/debugger.hpp
 ARCH_INTERFACE_H = src/architecture_interface.hpp
 ARM32 = src/comp_arch/arm32.hpp
-X86 = src/comp_arch/x86.hpp
+X86 = src/jit_arch/x86_jit.hpp
 
 
 # Object files - RIMUOVI architecture_interface.o perché non esiste più il .cpp

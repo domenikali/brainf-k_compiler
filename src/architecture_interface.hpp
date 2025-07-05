@@ -93,22 +93,14 @@ class ArchitectureInterface {
      * @param value The 64-bit unsigned integer to convert.
      * @return A string representing the hexadecimal format of the input value.
      */
-    std::string toHex(uint64_t value) {
-      unsigned char bytes[4];
-      
-      bytes[0] = (value >> 24) & 0xFF;
-      bytes[1] = (value >> 16) & 0xFF;
-      bytes[2] = (value >> 8) & 0xFF;
-      bytes[3] = value & 0xFF;
-      
-      std::stringstream ss;
-      ss << std::hex << std::uppercase << std::setfill('0')<<"\\x";
-      ss << std::setw(2) << static_cast<int>(bytes[3])<<"\\x";
-      ss << std::setw(2) << static_cast<int>(bytes[2])<<"\\x";
-      ss << std::setw(2) << static_cast<int>(bytes[1])<<"\\x";
-      ss << std::setw(2) << static_cast<int>(bytes[0]);
-      return ss.str();
-    }
+    std::string toHex(uint32_t value) {
+      std::string result;
+      result += static_cast<char>(value & 0xFF);
+      result += static_cast<char>((value >> 8) & 0xFF);
+      result += static_cast<char>((value >> 16) & 0xFF);
+      result += static_cast<char>((value >> 24) & 0xFF);
+      return result;
+  }
     
 };
 #endif 

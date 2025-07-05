@@ -7,8 +7,11 @@
 #include <vector>
 #include "comp_arch/arm32.hpp"
 #include "comp_arch/x86.hpp"
+#include <sys/mman.h>
 
 #include <stack>
+
+
 
 CompilerOptions getCompilerOptions(int argc, char* argv[]) {
   CompilerOptions options;
@@ -194,6 +197,17 @@ std::vector<Instruction> lexer(CompilerOptions options){
   return instructions;
 }
 
+void hexDump(jit_code * jit) {
+  std::cout << "Generated machine code (" << jit->code_size << " bytes):" << std::endl;
+  for (size_t i = 0; i < jit->code_size; ++i) {
+    printf("%02X ", (unsigned char)jit->code_buf[i]);
+    if(i % 16 == 15) {
+        std::cout << std::endl;
+    }
+  }
+  std::cout << std::endl;
+}
+
 void compiler(instructions_list instructions,CompilerOptions options){
   ArchitectureInterface *arch = getCompArch(options.target_arch);
   verbose(options, "Target architecture: " );
@@ -202,6 +216,7 @@ void compiler(instructions_list instructions,CompilerOptions options){
   std::string program ="";
   program+= arch->proStart(options.max_memory);
   for(Instruction instruction : instructions){
+    std::cout<< "Compiling instruction: " << static_cast<char>(instruction.type) << " x" << static_cast<int>(instruction.times) << std::endl;
     switch(instruction.type){
       case InstructionType::ADD:
         program += arch->add(instruction.times);
@@ -244,45 +259,109 @@ void compiler(instructions_list instructions,CompilerOptions options){
 }
 
 void jit_compiler(instructions_list instructions,CompilerOptions options){
-  ArchitectureInterface *arch = getJITArch(options.target_arch); 
-
+  //ArchitectureInterface *arch = getJITArch(options.target_arch); 
+  X86JIT *arch = new X86JIT(); 
   uint64_t pc =0;
-  std::string code ="";
-  code+= arch->proStart(options.max_memory);
+  jit_code *jit = create_JITCode(10000);
+
+  JIT_append(jit,arch->proStart(options.max_memory),8);
+ 
+  std::stack<size_t> jump_patch_stack;
   for(Instruction instruction : instructions){
     switch(instruction.type){
       case InstructionType::ADD:
-        code += arch->add(instruction.times);
+
+        JIT_append(jit,arch->add(instruction.times),10);
       break;
       case InstructionType::SUB:
-        code += arch->sub(instruction.times);
-      break;
+        JIT_append(jit,arch->sub(instruction.times),10);      
+
+        break;
       case InstructionType::INC:
-        code += arch->inc(instruction.times);
+        JIT_append(jit,arch->inc(instruction.times),4);
+
       break;
       case InstructionType::DEC:
-        code += arch->dec(instruction.times);
+        JIT_append(jit,arch->dec(instruction.times),4);
+
       break;
       case InstructionType::INPUT:
-        code += arch->input(instruction.times);
-      break;
+        JIT_append(jit,arch->input(instruction.times),12);
+        break;
       case InstructionType::OUTPUT:
-        code += arch->output(instruction.times);
+        JIT_append(jit,arch->output(instruction.times),12);
+
       break;
       case InstructionType::BEQZ:
-        code += arch->beqz(pc,instruction.branch_address);
+
+        JIT_append(jit,arch->beqz(),13);
+        jump_patch_stack.push(jit->code_size -4); //last 4 bytes are the jump and need to be patched later
+
+        
+        instructions[instruction.branch_address].branch_address = jit->code_size; // Store the address of the bneq instruction
       break;
       case InstructionType::BNEQ:
-        code += arch->bneq(pc,instruction.branch_address);
+
+        size_t patch_address = jump_patch_stack.top();
+        jump_patch_stack.pop();
+
+        int32_t jump_distance = static_cast<int32_t>(jit->code_size - (patch_address +4));
+        char jump_bytes[4];
+        jump_bytes[0] = static_cast<char>(jump_distance & 0xFF);
+        jump_bytes[1] = static_cast<char>((jump_distance >> 8) & 0xFF);
+        jump_bytes[2] = static_cast<char>((jump_distance >> 16) & 0xFF);
+        jump_bytes[3] = static_cast<char>((jump_distance >> 24) & 0xFF);
+        
+        JIT_reaplace(jit, jump_bytes , 4, patch_address);
+        JIT_append(jit,arch->bneq(jit->code_size,instruction.branch_address),13);
+
       break; 
     }
     pc++;
   }
-  code += arch->proEnd();
-  verbose(options, "Compilation completed successfully.");
-
+  JIT_append(jit,arch->proEnd(),12);
   
-  delete arch; // Clean up architecture object
+  
+  verbose(options, "Compilation completed successfully. Preparing memory for JIT execution.");
+  
+  void *mem = calloc(options.max_memory, sizeof(uint8_t));
+  if (mem == NULL) {
+    std::cerr << "Error: Memory allocation failed." << std::endl;
+    delete arch;
+    exit(EXIT_FAILURE);
+  }
+  verbose(options, "Memory allocated successfully.");
+
+  void *code_memory = mmap(NULL, jit->code_size, PROT_EXEC | PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+
+  if(code_memory == MAP_FAILED) {
+    std::cerr << "Error! Memory mapping failed: "<< strerror(errno) << std::endl;
+    free(mem);
+    delete arch;
+    exit(EXIT_FAILURE);
+  }
+  verbose(options, "Code memory mapped successfully.");
+
+  memcpy(code_memory, jit->code_buf, jit->code_size);
+  verbose(options, "Code copied to memory successfully.");
+
+  if (mprotect(code_memory, jit->code_size, PROT_READ | PROT_EXEC) != 0) {
+    std::cerr << "Error: Failed to make memory executable." << std::endl;
+    munmap(code_memory, jit->code_size);
+    free(mem);
+    delete arch;
+    exit(EXIT_FAILURE);
+  }
+  verbose(options, "Memory made executable successfully.");
+
+  // Execute the JIT compiled code
+  void (*run)(void *memory) = (void (*)(void*))code_memory;
+  
+  run(mem);
+
+  munmap(code_memory, jit->code_size);
+  free(mem);
+  delete arch;
 }
 
 
@@ -292,10 +371,8 @@ int main(int argc, char* argv[]) {
 
 
   CompilerOptions options = getCompilerOptions(argc, argv);  
-
-  std::cout << "Compiling Brainfuck source file: " << options.source_file_name << " as: "<<options.output_file_name<< std::endl;
   
-  verbose(options, "Compiler options setted");
+  verbose(options, "Compiling Brainfuck source file: "+options.source_file_name+" as: "+options.output_file_name);
   instructions_list instructions = lexer(options);
   verbose(options, "Translation completed");
   if(options.debug) {
@@ -311,12 +388,6 @@ int main(int argc, char* argv[]) {
     compiler(instructions,options);
 
   }
-  // uint8_t *memory = new uint8_t[options.max_memory];
-  // if(memory == nullptr) {
-  //   std::cerr << "Error: Memory allocation failed." << std::endl;
-  //   exit(EXIT_FAILURE);
-  // }
-  // printf("%x\n",memory);
 
 
   return 0;

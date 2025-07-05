@@ -68,12 +68,45 @@ ArchitectureInterface * getCompArch(CompilerArch target_arch){
 }
 
 ArchitectureInterface * getJITArch(CompilerArch target_arch){
-  switch (target_arch) {
-    case CompilerArch::X86_A:
-      return new X86JIT();
-    case CompilerArch::X86_64_A:
-      return new X86JIT();
+  // switch (target_arch) {
+  //   case CompilerArch::X86_A:
+  //     return new X86JIT();
+  //   case CompilerArch::X86_64_A:
+  //     return new X86JIT();
     
-  }
+  // }
   return NULL;
+}
+
+jit_code * create_JITCode(size_t memory_size){
+  jit_code *jit = (jit_code*)malloc(sizeof(jit_code));
+  jit->code_buf = (unsigned char *)malloc(memory_size); // Allocate 1MB for code buffer
+  if (!jit->code_buf) {
+    std::cerr << "Error allocating memory for JIT code buffer." << std::endl;
+    exit(EXIT_FAILURE);
+  }
+  jit->code_size = 0;
+  jit->memory_size = memory_size;
+  return jit;
+}
+
+
+void JIT_append(jit_code *jit,const char * code, size_t cs){
+  if (jit->code_size + cs >= jit->memory_size) {
+    std::cerr << "Error: JIT code buffer overflow." << std::endl;
+    exit(EXIT_FAILURE);
+  }
+  
+  memcpy(jit->code_buf + jit->code_size, code, cs);
+  jit->code_size += cs;
+}
+
+void JIT_reaplace(jit_code *jit, const char *code, size_t code_size,size_t pos){
+  for(int i=0;i<code_size;i++){
+    if (pos + i >= jit->memory_size) {
+      std::cerr << "Error: JIT code buffer overflow during replacement." << std::endl;
+      exit(EXIT_FAILURE);
+    }
+    jit->code_buf[pos + i] = code[i];
+  }
 }

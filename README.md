@@ -1,37 +1,43 @@
 # brainf-k_compiler
-Simple Brainfuck compiler for RISC architectures
+Simple Brainfuck compiler and JIT
 ==============================================
 
 ### Overview
-This is a simple Brainfuck compiler targeting RISC architectures. It takes Brainfuck code as input and compiles it to the appropriate assembly for your system.
+This is a simple Brainfuck JIT compiler targeting RISC and CISC architectures. It takes Brainfuck code as input and compiles it to the appropriate assembly for your system.
 
-The goal is to build a multi-target compiler that automatically detects the host CPU architecture and generates the correct assembly code accordingly.
 
 ### How to use
 1. Clone the repository
 
 2. Run the makefile:  
-    ``` bash
+    ```sh
     make 
     ```
 
 
 3. Compile your Brainfuck file:     
-    ```
-    bc <myCode.bf> 
+    ```sh
+    ./bc <myCode.bf> 
     ```
 
 4. For additional options, run: 
+    ```sh
+    ./bc -h
     ```
-    bc -h
-    ```
+
  
 
 ### Supported architectures:
+#### Compiler
 
- ARM32
- x86
+- ARM32
  
+- x86_64
+
+#### JIT Compiler
+- x86_64
+ 
+
 
 ### Add architecture
 
