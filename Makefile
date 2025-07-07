@@ -1,7 +1,7 @@
 SHELL = /bin/bash
 
 CC = g++
-CFLAGS = -Wall -Wextra -std=c++20
+CFLAGS = -Wall -Wextra -std=c++20 -ggdb -O0
 
 # Source files (.cpp)
 MAIN = src/brainfuck_compiler.cpp

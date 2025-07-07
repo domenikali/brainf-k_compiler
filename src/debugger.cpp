@@ -77,16 +77,16 @@ void debug(instructions_list instructions, CompilerOptions options) {
       break;
     case InstructionType::BEQZ:
       if(memory[head] == 0) {
-        fprintf(debug_file_name, "[PC %d]: Pointer at %ld is zero, jumping to %ld.\n", pc, head, instruction.branch_address);
-        pc = instruction.branch_address; // Jump to the branch address
+        fprintf(debug_file_name, "[PC %d]: Pointer at %ld is zero, jumping to %ld.\n", pc, head, instruction.extra);
+        pc = instruction.extra; // Jump to the branch address
       } else {
         fprintf(debug_file_name, "[PC %d]: Pointer at %ld is non-zero, continuing.\n", pc, head);
       }
       break;
     case InstructionType::BNEQ:
       if(memory[head] != 0) {
-        fprintf(debug_file_name, "[PC %d]: Pointer at %ld is non-zero, jumping to %ld.\n", pc, head, instruction.branch_address);
-        pc = instruction.branch_address; // Jump to the branch address
+        fprintf(debug_file_name, "[PC %d]: Pointer at %ld is non-zero, jumping to %ld.\n", pc, head, instruction.extra);
+        pc = instruction.extra; // Jump to the branch address
       } else {
         fprintf(debug_file_name, "[PC %d]: Pointer at %ld is zero, continuing.\n", pc, head);
       }

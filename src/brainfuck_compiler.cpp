@@ -120,15 +120,14 @@ std::vector<Instruction> lexer(CompilerOptions options){
   std::stack<uint64_t> cycle_stack;
   while((ch=fgetc(source_file)) != EOF) {
     Instruction instruction;
-    instruction.times = 1; 
-    instruction.branch_address = 0; 
+    instruction.extra = 1; 
     instruction.type = InstructionType::UNKNOWN; 
 
     switch (ch)
     {
     case '+':
       while((ch=fgetc(source_file)) == '+'&&options.optimize) {
-        instruction.times++;
+        instruction.extra++;
       }
       if(ch != EOF) fseek(source_file, -1, SEEK_CUR); 
       instruction.type = InstructionType::ADD;
@@ -136,7 +135,7 @@ std::vector<Instruction> lexer(CompilerOptions options){
       break;
     case '-':
       while((ch=fgetc(source_file)) == '-'&&options.optimize) {
-        instruction.times++;
+        instruction.extra++;
       }
       if(ch != EOF) fseek(source_file, -1, SEEK_CUR); 
       instruction.type = InstructionType::SUB;
@@ -152,7 +151,7 @@ std::vector<Instruction> lexer(CompilerOptions options){
       break;
     case '>':
       while((ch=fgetc(source_file)) == '>'&&options.optimize) {
-        instruction.times++;
+        instruction.extra++;
       }
       if(ch != EOF) fseek(source_file, -1, SEEK_CUR); 
       instruction.type = InstructionType::INC;
@@ -160,7 +159,7 @@ std::vector<Instruction> lexer(CompilerOptions options){
       break;
     case '<':
       while((ch=fgetc(source_file)) == '<'&&options.optimize) {
-        instruction.times++;
+        instruction.extra++;
       }
       if(ch != EOF) fseek(source_file, -1, SEEK_CUR); 
       instruction.type = InstructionType::DEC;
@@ -178,9 +177,9 @@ std::vector<Instruction> lexer(CompilerOptions options){
         exit(EXIT_FAILURE);
       }
       instruction.type = InstructionType::BNEQ;
-      instruction.branch_address = cycle_stack.top();
+      instruction.extra = cycle_stack.top();
       cycle_stack.pop();
-      instructions[instruction.branch_address].branch_address = pc; 
+      instructions[instruction.extra].extra = pc; 
       instructions.push_back(instruction);
       break;
     default:
@@ -216,31 +215,31 @@ void compiler(instructions_list instructions,CompilerOptions options){
   std::string program ="";
   program+= arch->proStart(options.max_memory);
   for(Instruction instruction : instructions){
-    std::cout<< "Compiling instruction: " << static_cast<char>(instruction.type) << " x" << static_cast<int>(instruction.times) << std::endl;
+    std::cout<< "Compiling instruction: " << static_cast<char>(instruction.type) << " x" << static_cast<int>(instruction.extra) << std::endl;
     switch(instruction.type){
       case InstructionType::ADD:
-        program += arch->add(instruction.times);
+        program += arch->add(instruction.extra);
       break;
       case InstructionType::SUB:
-        program += arch->sub(instruction.times);
+        program += arch->sub(instruction.extra);
       break;
       case InstructionType::INC:
-        program += arch->inc(instruction.times);
+        program += arch->inc(instruction.extra);
       break;
       case InstructionType::DEC:
-        program += arch->dec(instruction.times);
+        program += arch->dec(instruction.extra);
       break;
       case InstructionType::INPUT:
-        program += arch->input(instruction.times);
+        program += arch->input(instruction.extra);
       break;
       case InstructionType::OUTPUT:
-        program += arch->output(instruction.times);
+        program += arch->output(instruction.extra);
       break;
       case InstructionType::BEQZ:
-        program += arch->beqz(pc,instruction.branch_address);
+        program += arch->beqz(pc,instruction.extra);
       break;
       case InstructionType::BNEQ:
-        program += arch->bneq(pc,instruction.branch_address);
+        program += arch->bneq(pc,instruction.extra);
       break; 
     }
     pc++;
@@ -262,7 +261,7 @@ void jit_compiler(instructions_list instructions,CompilerOptions options){
   //ArchitectureInterface *arch = getJITArch(options.target_arch); 
   X86JIT *arch = new X86JIT(); 
   uint64_t pc =0;
-  jit_code *jit = create_JITCode(10000);
+  jit_code *jit = create_JITCode(100000);
 
   JIT_append(jit,arch->proStart(options.max_memory),8);
  
@@ -271,25 +270,25 @@ void jit_compiler(instructions_list instructions,CompilerOptions options){
     switch(instruction.type){
       case InstructionType::ADD:
 
-        JIT_append(jit,arch->add(instruction.times),10);
+        JIT_append(jit,arch->add(instruction.extra),10);
       break;
       case InstructionType::SUB:
-        JIT_append(jit,arch->sub(instruction.times),10);      
+        JIT_append(jit,arch->sub(instruction.extra),10);      
 
         break;
       case InstructionType::INC:
-        JIT_append(jit,arch->inc(instruction.times),4);
+        JIT_append(jit,arch->inc(instruction.extra),4);
 
       break;
       case InstructionType::DEC:
-        JIT_append(jit,arch->dec(instruction.times),4);
+        JIT_append(jit,arch->dec(instruction.extra),4);
 
       break;
       case InstructionType::INPUT:
-        JIT_append(jit,arch->input(instruction.times),12);
+        JIT_append(jit,arch->input(instruction.extra),12);
         break;
       case InstructionType::OUTPUT:
-        JIT_append(jit,arch->output(instruction.times),12);
+        JIT_append(jit,arch->output(instruction.extra),12);
 
       break;
       case InstructionType::BEQZ:
@@ -298,7 +297,7 @@ void jit_compiler(instructions_list instructions,CompilerOptions options){
         jump_patch_stack.push(jit->code_size -4); //last 4 bytes are the jump and need to be patched later
 
         
-        instructions[instruction.branch_address].branch_address = jit->code_size; // Store the address of the bneq instruction
+        instructions[instruction.extra].extra = jit->code_size; // Store the address of the bneq instruction
       break;
       case InstructionType::BNEQ:
 
@@ -313,13 +312,15 @@ void jit_compiler(instructions_list instructions,CompilerOptions options){
         jump_bytes[3] = static_cast<char>((jump_distance >> 24) & 0xFF);
         
         JIT_reaplace(jit, jump_bytes , 4, patch_address);
-        JIT_append(jit,arch->bneq(jit->code_size,instruction.branch_address),13);
+        JIT_append(jit,arch->bneq(jit->code_size,instruction.extra),13);
 
       break; 
     }
     pc++;
   }
   JIT_append(jit,arch->proEnd(),12);
+
+  hexDump(jit);
   
   
   verbose(options, "Compilation completed successfully. Preparing memory for JIT execution.");
@@ -367,7 +368,6 @@ void jit_compiler(instructions_list instructions,CompilerOptions options){
 
 int main(int argc, char* argv[]) {
 
-  
 
 
   CompilerOptions options = getCompilerOptions(argc, argv);  

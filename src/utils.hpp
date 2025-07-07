@@ -57,12 +57,13 @@ enum InstructionType{
 };
 typedef enum InstructionType InstructionType;
 
-struct Instruction {
+typedef struct{
   InstructionType type;
-  uint64_t times;       // Number of times this instruction is executed
-  uint64_t branch_address;     // Address of the branch instruction if targeted
-};
-typedef struct Instruction Instruction;
+  uint32_t extra; // Extra data for the instruction, e.g., times to repeat or branch adress
+}Instruction;
+
+
+//typedef std::pair<InstructionType, uint32_t> InstructionPair;
 
 typedef std::vector<Instruction> instructions_list;
 
