@@ -71,15 +71,12 @@ ArchitectureInterface * getCompArch(CompilerArch target_arch);
 ArchitectureInterface * getJITArch(CompilerArch target_arch);
 
 
-typedef struct{
-  unsigned char *code_buf; 
-  size_t code_size;           
-  size_t memory_size;        
-}jit_code;
 
-jit_code * create_JITCode(size_t memory_size);
-void JIT_append(jit_code *jit, const char *code, size_t cs);
 
-void JIT_reaplace(jit_code *jit, const char *code, size_t code_size,size_t pos);
+jit_code_t * create_JITCode(size_t memory_size);
+void JIT_append(jit_code_t*jit, const char *code, size_t cs);
+
+void JIT_reaplace(jit_code_t*jit, const char *code, size_t code_size,size_t pos);
+
 
 #endif 

@@ -6,6 +6,19 @@
 #include <sstream>
 #include <iomanip>
 
+typedef struct{
+  unsigned char *code_buf; 
+  size_t code_size;           
+  size_t memory_size;        
+}jit_code_t;
+
+inline bool check_size(jit_code_t*jit, size_t cs){
+  if (jit->code_size + cs >= jit->memory_size) {
+    std::cerr << "Error: JIT code buffer overflow." << std::endl;
+    return false;
+  }
+  return true;
+}
 
 
 /**

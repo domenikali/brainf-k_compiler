@@ -196,7 +196,7 @@ std::vector<Instruction> lexer(CompilerOptions options){
   return instructions;
 }
 
-void hexDump(jit_code * jit) {
+void hexDump(jit_code_t* jit) {
   std::cout << "Generated machine code (" << jit->code_size << " bytes):" << std::endl;
   for (size_t i = 0; i < jit->code_size; ++i) {
     printf("%02X ", (unsigned char)jit->code_buf[i]);
@@ -261,42 +261,36 @@ void jit_compiler(instructions_list instructions,CompilerOptions options){
   //ArchitectureInterface *arch = getJITArch(options.target_arch); 
   X86JIT *arch = new X86JIT(); 
   uint64_t pc =0;
-  jit_code *jit = create_JITCode(100000);
+  jit_code_t*jit = create_JITCode(100000);
 
-  JIT_append(jit,arch->proStart(options.max_memory),8);
- 
+  //JIT_append(jit,arch->proStart(options.max_memory),8);
+  arch->proStart(jit);
   std::stack<size_t> jump_patch_stack;
   for(Instruction instruction : instructions){
     switch(instruction.type){
       case InstructionType::ADD:
-
-        JIT_append(jit,arch->add(instruction.extra),10);
+        arch->add(jit,instruction.extra);
       break;
       case InstructionType::SUB:
-        JIT_append(jit,arch->sub(instruction.extra),10);      
-
+        arch->sub(jit,instruction.extra);
         break;
       case InstructionType::INC:
-        JIT_append(jit,arch->inc(instruction.extra),4);
-
+        arch->inc(jit,instruction.extra);
       break;
       case InstructionType::DEC:
-        JIT_append(jit,arch->dec(instruction.extra),4);
-
+        arch->dec(jit,instruction.extra);
       break;
       case InstructionType::INPUT:
-        JIT_append(jit,arch->input(instruction.extra),12);
-        break;
+        arch->input(jit);
+      break;
       case InstructionType::OUTPUT:
-        JIT_append(jit,arch->output(instruction.extra),12);
-
+        arch->output(jit);
       break;
       case InstructionType::BEQZ:
 
-        JIT_append(jit,arch->beqz(),13);
+        arch->beqz(jit);
         jump_patch_stack.push(jit->code_size -4); //last 4 bytes are the jump and need to be patched later
-
-        
+       
         instructions[instruction.extra].extra = jit->code_size; // Store the address of the bneq instruction
       break;
       case InstructionType::BNEQ:
@@ -312,14 +306,13 @@ void jit_compiler(instructions_list instructions,CompilerOptions options){
         jump_bytes[3] = static_cast<char>((jump_distance >> 24) & 0xFF);
         
         JIT_reaplace(jit, jump_bytes , 4, patch_address);
-        JIT_append(jit,arch->bneq(jit->code_size,instruction.extra),13);
-
+          //JIT_append(jit,arch->bneq(jit->code_size,instruction.extra),13);
+        arch->bneq(jit,jit->code_size,instruction.extra);
       break; 
     }
     pc++;
   }
-  JIT_append(jit,arch->proEnd(),12);
-
+  arch->proEnd(jit);
   hexDump(jit);
   
   
@@ -369,7 +362,18 @@ void jit_compiler(instructions_list instructions,CompilerOptions options){
 int main(int argc, char* argv[]) {
 
 
+  // static char c[5];
+  // c[4] = '\0';
+  // uint32_t a = 999900000; // Example value, replace with actual logic
+  
+  // memcpy(c, &a, 4);
 
+  // printf("%02X ", c[0]);
+  // printf("%02X ", c[1]);
+  // printf("%02X ", c[2]);
+  // printf("%02X ", c[3]);
+
+  // exit(0);
   CompilerOptions options = getCompilerOptions(argc, argv);  
   
   verbose(options, "Compiling Brainfuck source file: "+options.source_file_name+" as: "+options.output_file_name);
