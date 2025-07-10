@@ -12,6 +12,8 @@
 #include <stack>
 
 
+#define INT32_S 4
+
 
 CompilerOptions getCompilerOptions(int argc, char* argv[]) {
   CompilerOptions options;
@@ -259,7 +261,8 @@ void compiler(instructions_list instructions,CompilerOptions options){
 
 void jit_compiler(instructions_list instructions,CompilerOptions options){
   //ArchitectureInterface *arch = getJITArch(options.target_arch); 
-  X86JIT *arch = new X86JIT(); 
+  uint8_t branch_adress_size;
+  X86JIT *arch = new X86JIT(&branch_adress_size); 
   uint64_t pc =0;
   jit_code_t*jit = create_JITCode(100000);
 
@@ -289,7 +292,7 @@ void jit_compiler(instructions_list instructions,CompilerOptions options){
       case InstructionType::BEQZ:
 
         arch->beqz(jit);
-        jump_patch_stack.push(jit->code_size -4); //last 4 bytes are the jump and need to be patched later
+        jump_patch_stack.push(jit->code_size -branch_adress_size); //last 4 bytes are the jump and need to be patched later
        
         instructions[instruction.extra].extra = jit->code_size; // Store the address of the bneq instruction
       break;
@@ -298,16 +301,11 @@ void jit_compiler(instructions_list instructions,CompilerOptions options){
         size_t patch_address = jump_patch_stack.top();
         jump_patch_stack.pop();
 
-        int32_t jump_distance = static_cast<int32_t>(jit->code_size - (patch_address +4));
-        char jump_bytes[4];
-        jump_bytes[0] = static_cast<char>(jump_distance & 0xFF);
-        jump_bytes[1] = static_cast<char>((jump_distance >> 8) & 0xFF);
-        jump_bytes[2] = static_cast<char>((jump_distance >> 16) & 0xFF);
-        jump_bytes[3] = static_cast<char>((jump_distance >> 24) & 0xFF);
-        
-        JIT_reaplace(jit, jump_bytes , 4, patch_address);
-          //JIT_append(jit,arch->bneq(jit->code_size,instruction.extra),13);
         arch->bneq(jit,jit->code_size,instruction.extra);
+
+        int32_t jump_distance = static_cast<int32_t>(jit->code_size - (patch_address +branch_adress_size));
+        
+        memcpy(jit->code_buf + patch_address, &jump_distance, INT32_S); // Patch the jump distance
       break; 
     }
     pc++;
@@ -361,19 +359,6 @@ void jit_compiler(instructions_list instructions,CompilerOptions options){
 
 int main(int argc, char* argv[]) {
 
-
-  // static char c[5];
-  // c[4] = '\0';
-  // uint32_t a = 999900000; // Example value, replace with actual logic
-  
-  // memcpy(c, &a, 4);
-
-  // printf("%02X ", c[0]);
-  // printf("%02X ", c[1]);
-  // printf("%02X ", c[2]);
-  // printf("%02X ", c[3]);
-
-  // exit(0);
   CompilerOptions options = getCompilerOptions(argc, argv);  
   
   verbose(options, "Compiling Brainfuck source file: "+options.source_file_name+" as: "+options.output_file_name);
