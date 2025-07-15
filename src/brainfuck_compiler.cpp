@@ -187,7 +187,9 @@ std::vector<Instruction> lexer(CompilerOptions options){
     default:
       break;
     }
-    pc++;
+    if(instruction.type != InstructionType::UNKNOWN) {
+      pc++;
+    }
   }
   if(!cycle_stack.empty()){
     std::cerr << "Error: Unmatched '[' at program counter " << cycle_stack.top() << std::endl;
@@ -217,7 +219,6 @@ void compiler(instructions_list instructions,CompilerOptions options){
   std::string program ="";
   program+= arch->proStart(options.max_memory);
   for(Instruction instruction : instructions){
-    std::cout<< "Compiling instruction: " << static_cast<char>(instruction.type) << " x" << static_cast<int>(instruction.extra) << std::endl;
     switch(instruction.type){
       case InstructionType::ADD:
         program += arch->add(instruction.extra);
@@ -268,7 +269,6 @@ void jit_compiler(instructions_list instructions,CompilerOptions options){
 
   //JIT_append(jit,arch->proStart(options.max_memory),8);
   arch->proStart(jit);
-  std::stack<size_t> jump_patch_stack;
   for(Instruction instruction : instructions){
     switch(instruction.type){
       case InstructionType::ADD:
@@ -292,26 +292,21 @@ void jit_compiler(instructions_list instructions,CompilerOptions options){
       case InstructionType::BEQZ:
 
         arch->beqz(jit);
-        jump_patch_stack.push(jit->code_size -branch_adress_size); //last 4 bytes are the jump and need to be patched later
-       
         instructions[instruction.extra].extra = jit->code_size; // Store the address of the bneq instruction
       break;
       case InstructionType::BNEQ:
 
-        size_t patch_address = jump_patch_stack.top();
-        jump_patch_stack.pop();
+        arch->bneq(jit,instruction.extra);
 
-        arch->bneq(jit,jit->code_size,instruction.extra);
-
-        int32_t jump_distance = static_cast<int32_t>(jit->code_size - (patch_address +branch_adress_size));
+        int32_t jump_distance = static_cast<int32_t>(jit->code_size - instruction.extra);
         
-        memcpy(jit->code_buf + patch_address, &jump_distance, INT32_S); // Patch the jump distance
+        memcpy(jit->code_buf + instruction.extra-branch_adress_size, &jump_distance, INT32_S); // Patch the jump distance
       break; 
     }
     pc++;
   }
   arch->proEnd(jit);
-  hexDump(jit);
+  //hexDump(jit);
   
   
   verbose(options, "Compilation completed successfully. Preparing memory for JIT execution.");
