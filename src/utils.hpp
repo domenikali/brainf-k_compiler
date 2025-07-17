@@ -68,7 +68,7 @@ typedef struct{
 typedef std::vector<Instruction> instructions_list;
 
 ArchitectureInterface * getCompArch(CompilerArch target_arch);
-ArchitectureInterface * getJITArch(CompilerArch target_arch);
+JITInterface * getJITArch(CompilerArch target_arch);
 
 
 

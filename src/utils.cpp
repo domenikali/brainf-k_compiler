@@ -67,7 +67,7 @@ ArchitectureInterface * getCompArch(CompilerArch target_arch){
   return NULL;
 }
 
-ArchitectureInterface * getJITArch(CompilerArch target_arch){
+JITInterface * getJITArch(CompilerArch target_arch){
   // switch (target_arch) {
   //   case CompilerArch::X86_A:
   //     return new X86JIT();

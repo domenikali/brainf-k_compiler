@@ -7,6 +7,7 @@
 #include <vector>
 #include "comp_arch/arm32.hpp"
 #include "comp_arch/x86.hpp"
+#include "JIT_arch_iterface.hpp"
 #include <sys/mman.h>
 
 #include <stack>
@@ -263,7 +264,7 @@ void compiler(instructions_list instructions,CompilerOptions options){
 void jit_compiler(instructions_list instructions,CompilerOptions options){
   //ArchitectureInterface *arch = getJITArch(options.target_arch); 
   uint8_t branch_adress_size;
-  X86JIT *arch = new X86JIT(&branch_adress_size); 
+  JITInterface *arch = new X86JIT(&branch_adress_size); 
   uint64_t pc =0;
   jit_code_t*jit = create_JITCode(100000);
 
