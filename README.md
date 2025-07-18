@@ -40,4 +40,25 @@ This is a simple Brainfuck JIT compiler targeting RISC and CISC architectures. I
 
 
 ### Add architecture
+To add a new architecture, you will need to:
+1. Create a new file in the correct folder 
+2. Implement the arch interface as described in the interfaces themselfs
+3. Inside the utils.cpp file add the correct arch matching your architecture
+4. if your arch is not already included just add the enum
+5. compile the compiler and you are ready to go
+
+### Benchmark
+
+This benchmarks are kind of useless. My main intrest is trying to optimise the jit as much as I can
+
+All benches are insite the bench folder, some are just to make sure the copiler works other test some specifics areas
+
+| Test            	| 0.0   	| 1.0 	|
+|-----------------	|-------	|-----	|
+| perf.bf         	| 3,90  	|     	|
+| pi-16.bf        	| 0,211 	|       |
+| golden-ratio.bf 	| 0,132 	|     	|
+| yapi.bf           | 0,026     |       |
+| long.bf           | 4,627     |       |
+
 
