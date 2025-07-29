@@ -55,10 +55,10 @@ All benches are insite the bench folder, some are just to make sure the copiler 
 
 | Test            	| 0.0   	| 1.0 	|
 |-----------------	|-------	|-----	|
-| perf.bf         	| 3,90  	|     	|
-| pi-16.bf        	| 0,211 	|       |
-| golden-ratio.bf 	| 0,132 	|     	|
-| yapi.bf           | 0,026     |       |
-| long.bf           | 4,627     |       |
+| perf.bf         	| 3,90  	| 3,17  |
+| pi-16.bf        	| 0,211 	| 0,200 |
+| golden-ratio.bf 	| 0,132 	| 0,126	|
+| yapi.bf           | 0,026     | 0,018 |
+| long.bf           | 4,627     | 4,533 |
 
 

@@ -42,3 +42,4 @@ test
 *.bin
 bc
 *.s
+/build

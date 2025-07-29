@@ -9,7 +9,7 @@
 #include "comp_arch/x86.hpp"
 #include "JIT_arch_iterface.hpp"
 #include <sys/mman.h>
-
+#include "jit_arch/x86_jit.hpp"
 #include <stack>
 
 
@@ -111,7 +111,7 @@ CompilerOptions getCompilerOptions(int argc, char* argv[]) {
   return options;
 }
 
-std::vector<Instruction> lexer(CompilerOptions options){ 
+std::vector<Instruction> lexer(CompilerOptions options,std::map<InstructionType,uint16_t> &instructions_map) { 
   FILE * source_file = fileRead(options.source_file_name.c_str());
   std::vector<Instruction> instructions;
   char ch;
@@ -135,6 +135,7 @@ std::vector<Instruction> lexer(CompilerOptions options){
       if(ch != EOF) fseek(source_file, -1, SEEK_CUR); 
       instruction.type = InstructionType::ADD;
       instructions.push_back(instruction);
+      
       break;
     case '-':
       while((ch=fgetc(source_file)) == '-'&&options.optimize) {
@@ -189,6 +190,7 @@ std::vector<Instruction> lexer(CompilerOptions options){
       break;
     }
     if(instruction.type != InstructionType::UNKNOWN) {
+      instructions_map[instruction.type] += 1; 
       pc++;
     }
   }
@@ -204,7 +206,7 @@ std::vector<Instruction> lexer(CompilerOptions options){
 void hexDump(jit_code_t* jit) {
   std::cout << "Generated machine code (" << jit->code_size << " bytes):" << std::endl;
   for (size_t i = 0; i < jit->code_size; ++i) {
-    printf("%02X ", (unsigned char)jit->code_buf[i]);
+    //printf("%02X ", (unsigned char)jit->code_buf[i]);
     if(i % 16 == 15) {
         std::cout << std::endl;
     }
@@ -261,14 +263,25 @@ void compiler(instructions_list instructions,CompilerOptions options){
 
 }
 
-void jit_compiler(instructions_list instructions,CompilerOptions options){
+void jit_compiler(instructions_list instructions,CompilerOptions options,std::map<InstructionType,uint16_t> &instructions_map) {
   //ArchitectureInterface *arch = getJITArch(options.target_arch); 
   uint8_t branch_adress_size;
-  JITInterface *arch = new X86JIT(&branch_adress_size); 
-  uint64_t pc =0;
-  jit_code_t*jit = create_JITCode(100000);
+  JIT_init_t init;
 
-  //JIT_append(jit,arch->proStart(options.max_memory),8);
+  JITInterface *arch = new X86JIT(&init); 
+
+  size_t jitSize=0;
+  for(auto &pair : instructions_map) {
+    
+    jitSize += pair.second * init.instructions_size[static_cast<uint8_t>(pair.first)]; 
+  }
+  jitSize+= init.instructions_size[static_cast<uint8_t>(InstructionType::UNKNOWN)]; // Add size for proStart and proEnd
+  verbose(options, "JIT code size: " + std::to_string(jitSize) + " bytes.");
+  branch_adress_size = init.branch_address_size;
+
+  uint64_t pc =0;
+  jit_code_t*jit = create_JITCode(jitSize);
+
   arch->proStart(jit);
   for(Instruction instruction : instructions){
     switch(instruction.type){
@@ -307,7 +320,6 @@ void jit_compiler(instructions_list instructions,CompilerOptions options){
     pc++;
   }
   arch->proEnd(jit);
-  //hexDump(jit);
   
   
   verbose(options, "Compilation completed successfully. Preparing memory for JIT execution.");
@@ -320,22 +332,10 @@ void jit_compiler(instructions_list instructions,CompilerOptions options){
   }
   verbose(options, "Memory allocated successfully.");
 
-  void *code_memory = mmap(NULL, jit->code_size, PROT_EXEC | PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
 
-  if(code_memory == MAP_FAILED) {
-    std::cerr << "Error! Memory mapping failed: "<< strerror(errno) << std::endl;
-    free(mem);
-    delete arch;
-    exit(EXIT_FAILURE);
-  }
-  verbose(options, "Code memory mapped successfully.");
-
-  memcpy(code_memory, jit->code_buf, jit->code_size);
-  verbose(options, "Code copied to memory successfully.");
-
-  if (mprotect(code_memory, jit->code_size, PROT_READ | PROT_EXEC) != 0) {
+  if (mprotect(jit->code_buf, jit->memory_size, PROT_READ | PROT_EXEC) != 0) {
     std::cerr << "Error: Failed to make memory executable." << std::endl;
-    munmap(code_memory, jit->code_size);
+    munmap(jit->code_buf, jit->memory_size);
     free(mem);
     delete arch;
     exit(EXIT_FAILURE);
@@ -343,11 +343,11 @@ void jit_compiler(instructions_list instructions,CompilerOptions options){
   verbose(options, "Memory made executable successfully.");
 
   // Execute the JIT compiled code
-  void (*run)(void *memory) = (void (*)(void*))code_memory;
+  void (*run)(void *memory) = (void (*)(void*))jit->code_buf;
   
   run(mem);
 
-  munmap(code_memory, jit->code_size);
+  munmap(jit->code_buf, jitSize);
   free(mem);
   delete arch;
 }
@@ -358,7 +358,18 @@ int main(int argc, char* argv[]) {
   CompilerOptions options = getCompilerOptions(argc, argv);  
   
   verbose(options, "Compiling Brainfuck source file: "+options.source_file_name+" as: "+options.output_file_name);
-  instructions_list instructions = lexer(options);
+  std::map<InstructionType,uint16_t> instructions_map= {
+    {InstructionType::ADD, 0},
+    {InstructionType::SUB, 0},
+    {InstructionType::INC, 0},
+    {InstructionType::DEC, 0},
+    {InstructionType::INPUT, 0},
+    {InstructionType::OUTPUT, 0},
+    {InstructionType::BEQZ, 0},
+    {InstructionType::BNEQ, 0},
+    {InstructionType::UNKNOWN, 0}
+  };
+  instructions_list instructions = lexer(options,instructions_map);
   verbose(options, "Translation completed");
   if(options.debug) {
     std::cout << "Debugging enabled." << std::endl;
@@ -366,7 +377,7 @@ int main(int argc, char* argv[]) {
   }
   if(options.jit) {
     verbose(options, "Just-In-Time compilation enabled.");
-    jit_compiler(instructions, options);
+    jit_compiler(instructions, options,instructions_map);
   }
   else{
     verbose(options, "Compiling..."); 

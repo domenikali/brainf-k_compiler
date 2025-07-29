@@ -6,8 +6,17 @@
 
 class X86JIT:public JITInterface {
   public:
-    X86JIT(uint8_t *branch_address_size){
-      *branch_address_size =BRANCH_ADDRESS_SIZE;
+    X86JIT(JIT_init_t *init){
+      init->instructions_size[static_cast<uint8_t>(InstructionType::ADD)] = 6;
+      init->instructions_size[static_cast<uint8_t>(InstructionType::SUB)] = 6;
+      init->instructions_size[static_cast<uint8_t>(InstructionType::INC)] = 4;
+      init->instructions_size[static_cast<uint8_t>(InstructionType::DEC)] = 4;
+      init->instructions_size[static_cast<uint8_t>(InstructionType::INPUT)] = 12;
+      init->instructions_size[static_cast<uint8_t>(InstructionType::OUTPUT)] = 12;
+      init->instructions_size[static_cast<uint8_t>(InstructionType::BEQZ)] = 10;
+      init->instructions_size[static_cast<uint8_t>(InstructionType::BNEQ)] = 10;
+      init->instructions_size[static_cast<uint8_t>(InstructionType::UNKNOWN)] = 20+1; // Unknown keeps size of prostart and proend, +1 because it is used to store the address of the next instruction
+      init->branch_address_size =BRANCH_ADDRESS_SIZE;
     }
     void proStart(jit_code_t *jit) override{
       check_size(jit, 8);
@@ -27,7 +36,7 @@ class X86JIT:public JITInterface {
     };
     
     void add(jit_code_t *jit,uint8_t count)override{
-      check_size(jit, 9);
+      check_size(jit, 6);
       memcpy(jit->code_buf + jit->code_size, 
               "\x8A\x06"                        // mov al, [rsi]; current cell value into al
               "\x04", 3);                       // add al, count; add the count to al

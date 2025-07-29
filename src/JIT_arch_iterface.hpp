@@ -3,13 +3,39 @@
 #include <cstdint>
 #include <cstring>
 #include <iostream>
+#include <map>
+#include <sys/mman.h>
+
+enum InstructionType{
+  ADD = '+',
+  SUB = '-',
+  INC = '>',    
+  DEC = '<',    
+  INPUT = ',',  
+  OUTPUT = '.', 
+  BNEQ = ']',  
+  BEQZ = '[',  
+  UNKNOWN = '?' // Unknown instruction 
+};
+typedef enum InstructionType InstructionType;
+
+
+/**
+ * 
+ */
+typedef struct JIT_init{
+  std::map<uint8_t, uint32_t> instructions_size;
+  uint8_t branch_address_size;                        // Size of the branch address in bytes
+}JIT_init_t;
+
+
 
 /**
  * @brief this structure represents the JIT code buffer.
  * It contains a pointer to the code buffer, the size of the code, and the size of the memory allocated for the code.
  */
 typedef struct{
-  unsigned char *code_buf;
+  void *code_buf;
   size_t code_size;
   size_t memory_size;
 }jit_code_t;
@@ -24,6 +50,40 @@ inline bool check_size(jit_code_t*jit, size_t cs){
     return false;
   }
   return true;
+}
+
+inline jit_code_t* create_JITCode(size_t memory_size){
+  jit_code_t*jit = (jit_code_t*)malloc(sizeof(jit_code_t));
+ 
+
+  jit->code_size = 0;
+  jit->memory_size = memory_size;
+  jit->code_buf = mmap(NULL, jit->memory_size, PROT_EXEC | PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+
+  if(jit->code_buf == MAP_FAILED) {
+    std::cerr << "Error! Memory mapping failed: "<< strerror(errno) << std::endl;
+    exit(EXIT_FAILURE);
+  }
+  return jit;
+}
+
+
+inline void JIT_append(jit_code_t*jit,const char * code, size_t cs){
+  if (jit->code_size + cs >= jit->memory_size) {
+    std::cerr << "Error: JIT code buffer overflow." << std::endl;
+    exit(EXIT_FAILURE);
+  }
+  
+  memcpy(jit->code_buf + jit->code_size, code, cs);
+  jit->code_size += cs;
+}
+
+inline void JIT_reaplace(jit_code_t*jit, const char *code, size_t code_size,size_t pos){
+  if(pos + code_size > jit->memory_size) {
+    std::cerr << "Error: JIT code buffer overflow at position " << pos << "." << std::endl;
+    exit(EXIT_FAILURE);
+  }
+  memcpy(jit->code_buf + pos, code, code_size);
 }
 
 /**

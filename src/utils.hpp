@@ -5,8 +5,9 @@
 #include <cstdint>
 #include <vector>
 #include "architecture_interface.hpp"
+#include "JIT_arch_iterface.hpp"
 #include "comp_arch/x86.hpp"
-#include "comp_arch/arm32.hpp"
+#include "comp_arch/arm32.hpp" 
 #include "jit_arch/x86_jit.hpp"
 
 enum class CompilerArch {
@@ -44,18 +45,6 @@ FILE * fileWrite(const char *filename);
 
 void verbose(CompilerOptions options, const std::string &message);
 
-enum InstructionType{
-  ADD = '+',
-  SUB = '-',
-  INC = '>',    
-  DEC = '<',    
-  INPUT = ',',  
-  OUTPUT = '.', 
-  BNEQ = ']',  
-  BEQZ = '[',  
-  UNKNOWN = '?' // Unknown instruction 
-};
-typedef enum InstructionType InstructionType;
 
 typedef struct{
   InstructionType type;
@@ -69,14 +58,5 @@ typedef std::vector<Instruction> instructions_list;
 
 ArchitectureInterface * getCompArch(CompilerArch target_arch);
 JITInterface * getJITArch(CompilerArch target_arch);
-
-
-
-
-jit_code_t * create_JITCode(size_t memory_size);
-void JIT_append(jit_code_t*jit, const char *code, size_t cs);
-
-void JIT_reaplace(jit_code_t*jit, const char *code, size_t code_size,size_t pos);
-
 
 #endif 
