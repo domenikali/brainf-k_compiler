@@ -53,12 +53,21 @@ This benchmarks are kind of useless. My main intrest is trying to optimise the j
 
 All benches are insite the bench folder, some are just to make sure the copiler works other test some specifics areas
 
-| Test            	| 0.0   	| 1.0 	|
-|-----------------	|-------	|-----	|
-| perf.bf         	| 3,90  	| 3,17  |
-| pi-16.bf        	| 0,211 	| 0,200 |
-| golden-ratio.bf 	| 0,132 	| 0,126	|
-| yapi.bf           | 0,026     | 0,018 |
-| long.bf           | 4,627     | 4,533 |
+| Test            	| 0.0   	| 1.0 	| 1.1   |
+|-----------------	|-------	|-----	|----   |
+| perf.bf         	| 3,90  	| 3,17  | 3,16  |
+| pi-16.bf        	| 0,211 	| 0,200 | 0,200 |
+| golden-ratio.bf 	| 0,132 	| 0,126	| 1,126 |
+| yapi.bf           | 0,026     | 0,018 | 0,016 |
+| long.bf           | 4,627     | 4,533 | 4,477 |
+
+Version 0.0
+    - without any major optimisation
+
+Version 1.0
+    - instead of allocating a buffer for the jit instruction then memcopy-ing those into the mmap the jit buffer is the mmaped region
+
+Version 1.1
+    - optimised the Lexer, instead of reling on reading char by char from the file everyting is copied in a char array
 
 

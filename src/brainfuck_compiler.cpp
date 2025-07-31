@@ -11,6 +11,9 @@
 #include <sys/mman.h>
 #include "jit_arch/x86_jit.hpp"
 #include <stack>
+#include <chrono>
+#include <fstream>
+#include <streambuf>
 
 
 #define INT32_S 4
@@ -18,6 +21,9 @@
 
 CompilerOptions getCompilerOptions(int argc, char* argv[]) {
   CompilerOptions options;
+  options.optimize = true; // Default optimization flag
+  options.debug = false; // Default debugging flag
+  options.verbose = false; // Default verbose output flag
 
   if(argc < 2) {
     std::cerr << "Usage: " << argv[0] << " <source_file.bf>" << std::endl;
@@ -28,7 +34,7 @@ CompilerOptions getCompilerOptions(int argc, char* argv[]) {
     std::string arg = argv[i];
     
     if(arg == "--optimize" || arg == "-O") {
-      options.optimize = true;
+      options.optimize = false;
     } else if(arg == "--debug" || arg == "-D") {
       options.debug = true;
     } else if(arg == "--jit" || arg == "-J") {
@@ -112,72 +118,110 @@ CompilerOptions getCompilerOptions(int argc, char* argv[]) {
 }
 
 std::vector<Instruction> lexer(CompilerOptions options,std::map<InstructionType,uint16_t> &instructions_map) { 
-  FILE * source_file = fileRead(options.source_file_name.c_str());
+  FILE* file = fopen(options.source_file_name.c_str(), "rb");
+  if (!file) {
+    std::cerr << "Error: Could not open source file '" << options.source_file_name << "'." << std::endl;
+    exit(EXIT_FAILURE);
+  }
+  
+  fseek(file, 0, SEEK_END);
+  size_t size = ftell(file);
+  fseek(file, 0, SEEK_SET);
+  
+  char* buffer = (char*)malloc(size);
+  if (!buffer) {
+    fclose(file);
+    std::cerr << "Error: Lexer memory allocation failed." << std::endl;
+    exit(EXIT_FAILURE);
+  }
+  
+  // Read entire file
+  size_t read = fread(buffer, 1, size, file);
+  fclose(file);
+  
+  if (read != size) {
+    free(buffer);
+    std::cerr << "Error: Could not read the entire source file." << std::endl;
+    exit(EXIT_FAILURE);
+  }
+
+  //FILE * source_file = fileRead(options.source_file_name.c_str());
   std::vector<Instruction> instructions;
-  char ch;
+  //char ch;
   uint64_t pc = 0;
 
   if(options.debug)
     options.optimize = false; 
-
+  
   std::stack<uint64_t> cycle_stack;
-  while((ch=fgetc(source_file)) != EOF) {
+  int i=0;
+  while(i<size) {
     Instruction instruction;
     instruction.extra = 1; 
     instruction.type = InstructionType::UNKNOWN; 
 
-    switch (ch)
+    switch (buffer[i])
     {
     case '+':
-      while((ch=fgetc(source_file)) == '+'&&options.optimize) {
+      while(buffer[i+1] == '+' && options.optimize) {
+        std::cout << "Optimizing ADD instruction at position " << i << std::endl;
         instruction.extra++;
+        i++;
       }
-      if(ch != EOF) fseek(source_file, -1, SEEK_CUR); 
+      //if(ch != EOF) fseek(source_file, -1, SEEK_CUR); 
       instruction.type = InstructionType::ADD;
       instructions.push_back(instruction);
       
       break;
     case '-':
-      while((ch=fgetc(source_file)) == '-'&&options.optimize) {
+
+      while(buffer[i+1] == '-'&&options.optimize) {
         instruction.extra++;
+        i++;
       }
-      if(ch != EOF) fseek(source_file, -1, SEEK_CUR); 
+      //if(ch != EOF) fseek(source_file, -1, SEEK_CUR); 
       instruction.type = InstructionType::SUB;
       instructions.push_back(instruction);
       break;
     case '.':
+
       instruction.type = InstructionType::OUTPUT;
       instructions.push_back(instruction);
       break;
     case ',':
+
       instruction.type = InstructionType::INPUT;
       instructions.push_back(instruction);
       break;
     case '>':
-      while((ch=fgetc(source_file)) == '>'&&options.optimize) {
+
+      while(buffer[i+1] == '>'&&options.optimize) {
         instruction.extra++;
+        i++;
       }
-      if(ch != EOF) fseek(source_file, -1, SEEK_CUR); 
+      //if(ch != EOF) fseek(source_file, -1, SEEK_CUR); 
       instruction.type = InstructionType::INC;
       instructions.push_back(instruction);
       break;
     case '<':
-      while((ch=fgetc(source_file)) == '<'&&options.optimize) {
+      while(buffer[i+1] == '<'&&options.optimize) {
         instruction.extra++;
+        i++;
       }
-      if(ch != EOF) fseek(source_file, -1, SEEK_CUR); 
+      //if(ch != EOF) fseek(source_file, -1, SEEK_CUR); 
       instruction.type = InstructionType::DEC;
       instructions.push_back(instruction);
       break;
     case '[':
+
       instruction.type = InstructionType::BEQZ;
       cycle_stack.push(pc); 
       instructions.push_back(instruction);
       break;
     case ']':
+
       if(cycle_stack.empty()) {
         std::cerr << "Error: Unmatched ']' at program counter " << pc << std::endl;
-        fclose(source_file);
         exit(EXIT_FAILURE);
       }
       instruction.type = InstructionType::BNEQ;
@@ -193,13 +237,15 @@ std::vector<Instruction> lexer(CompilerOptions options,std::map<InstructionType,
       instructions_map[instruction.type] += 1; 
       pc++;
     }
+    i++;
   }
   if(!cycle_stack.empty()){
     std::cerr << "Error: Unmatched '[' at program counter " << cycle_stack.top() << std::endl;
-    fclose(source_file);
+    //fclose(source_file);
     exit(EXIT_FAILURE);
   }
-  fclose(source_file);
+  free(buffer);
+  //fclose(source_file);
   return instructions;
 }
 
@@ -265,6 +311,11 @@ void compiler(instructions_list instructions,CompilerOptions options){
 
 void jit_compiler(instructions_list instructions,CompilerOptions options,std::map<InstructionType,uint16_t> &instructions_map) {
   //ArchitectureInterface *arch = getJITArch(options.target_arch); 
+  // using std::chrono::duration_cast;
+  // using std::chrono::nanoseconds;
+  // typedef std::chrono::high_resolution_clock clock;
+
+  //auto start = clock::now();
   uint8_t branch_adress_size;
   JIT_init_t init;
 
@@ -320,6 +371,9 @@ void jit_compiler(instructions_list instructions,CompilerOptions options,std::ma
     pc++;
   }
   arch->proEnd(jit);
+
+  //auto end = clock::now();
+  //std::cout << "JIT compilation completed in: " << duration_cast<nanoseconds>(end-start).count() << "ns" << std::endl;
   
   
   verbose(options, "Compilation completed successfully. Preparing memory for JIT execution.");
@@ -344,8 +398,10 @@ void jit_compiler(instructions_list instructions,CompilerOptions options,std::ma
 
   // Execute the JIT compiled code
   void (*run)(void *memory) = (void (*)(void*))jit->code_buf;
-  
+  //start = clock::now();
   run(mem);
+  //end = clock::now();
+  //std::cout << "JIT execution completed in: " << duration_cast<nanoseconds>(end-start).count() << "ns" << std::endl;
 
   munmap(jit->code_buf, jitSize);
   free(mem);
@@ -353,10 +409,16 @@ void jit_compiler(instructions_list instructions,CompilerOptions options,std::ma
 }
 
 
-int main(int argc, char* argv[]) {
 
+int main(int argc, char* argv[]) {
+  // using std::chrono::duration_cast;
+  // using std::chrono::nanoseconds;
+  // typedef std::chrono::high_resolution_clock clock;
+  // auto start = clock::now();
   CompilerOptions options = getCompilerOptions(argc, argv);  
-  
+  //auto end = clock::now();
+  //std::cout <<"compiler options: "<< duration_cast<nanoseconds>(end-start).count() << "ns"<<std::endl;
+
   verbose(options, "Compiling Brainfuck source file: "+options.source_file_name+" as: "+options.output_file_name);
   std::map<InstructionType,uint16_t> instructions_map= {
     {InstructionType::ADD, 0},
@@ -369,7 +431,12 @@ int main(int argc, char* argv[]) {
     {InstructionType::BNEQ, 0},
     {InstructionType::UNKNOWN, 0}
   };
+
+  //start = clock::now();
+    
   instructions_list instructions = lexer(options,instructions_map);
+  //end = clock::now();
+  //std::cout <<"lexer: "<< duration_cast<nanoseconds>(end-start).count() << "ns"<<std::endl;
   verbose(options, "Translation completed");
   if(options.debug) {
     std::cout << "Debugging enabled." << std::endl;
