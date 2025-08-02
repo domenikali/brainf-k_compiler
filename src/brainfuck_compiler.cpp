@@ -14,251 +14,10 @@
 #include <chrono>
 #include <fstream>
 #include <streambuf>
+#include "lexer.hpp"
 
-
+#define OPT_MOV0 2 //the size of the move 0 instruction [+] or [-]
 #define INT32_S 4
-
-
-CompilerOptions getCompilerOptions(int argc, char* argv[]) {
-  CompilerOptions options;
-  options.optimize = true; // Default optimization flag
-  options.debug = false; // Default debugging flag
-  options.verbose = false; // Default verbose output flag
-
-  if(argc < 2) {
-    std::cerr << "Usage: " << argv[0] << " <source_file.bf>" << std::endl;
-    exit(EXIT_FAILURE);
-  }
-
-  for (int i = 1; i < argc; ++i) {
-    std::string arg = argv[i];
-    
-    if(arg == "--optimize" || arg == "-O") {
-      options.optimize = false;
-    } else if(arg == "--debug" || arg == "-D") {
-      options.debug = true;
-    } else if(arg == "--jit" || arg == "-J") {
-      options.jit = true;
-    } else if(arg == "--verbose" || arg == "-V") {
-      options.verbose = true;
-    } else if(arg == "--max-cycles" || arg == "-C") {
-      if (i + 1 < argc) {
-        options.max_cycles = std::stoull(argv[++i]);
-      } else {
-        std::cerr << "Error: --max-cycles requires a value." << std::endl;
-        exit(EXIT_FAILURE);
-      }
-    } else if(arg == "--max-memory" || arg == "-M") {
-      if (i + 1 < argc) {
-        options.max_memory = std::stoull(argv[++i]);
-      } else {
-        std::cerr << "Error: --max-memory requires a value." << std::endl;
-        exit(EXIT_FAILURE);
-      }
-    } else if(arg == "--target-arch" || arg == "-T") {
-      if (i + 1 < argc) {
-        options.target_arch = getTargetArch(argv[++i]);
-      } else {
-        std::cerr << "Error: --target-arch requires a value." << std::endl;
-        exit(EXIT_FAILURE);
-      }
-    }else if(arg == "--name"|| arg == "-N") {
-      if (i + 1 < argc) {
-        std::string file_name = argv[++i];
-        if(file_name.find_last_of('.') != std::string::npos) {
-          file_name = file_name.substr(0, file_name.find_last_of('.'))+ ".asm"; // Ensure the file has .asm extension
-        }
-        else{
-          file_name += ".asm"; // Append .asm if no extension is present
-        }
-        options.output_file_name = file_name;
-      } else {
-        std::cerr << "Error: --name requires a value." << std::endl;
-        exit(EXIT_FAILURE);
-      }
-    } else if(arg == "--help" || arg == "-h") {
-      std::cout << "Usage: " << argv[0] << " [options] <source_file.bf>" << std::endl;
-      std::cout << "Options:" << std::endl;
-      std::cout << "\t-O, --optimize          Disable optimizations" << std::endl;
-      std::cout << "\t-J, --jit               Enable Just In Time Compiler" << std::endl;
-      std::cout << "\t-D, --debug             Stop compilation and create a debug file with extended informations about the program" << std::endl;
-      std::cout << "\t-V, --verbose           Enable verbose output" << std::endl;
-      std::cout << "\t-C, --max-cycles <n>    Set maximum cycles to <n>, default 1000000" << std::endl;
-      std::cout << "\t-M, --max-memory <n>    Set maximum memory to <n>, default 3000" << std::endl;
-      std::cout << "\t-T, --target-arch <arch>Set target architecture, default detect sys arch" << std::endl;
-      std::cout << "\t-N, --name <name>       Set output file name, default source file" << std::endl;
-      std::cout << "\t-h, --help              Show this help message" << std::endl;
-      exit(0);
-    }else if(arg.find("--") == 0 || arg.find("-") == 0) {
-      std::cerr << "Error: Unknown option '" << arg << "'." << std::endl;
-      exit(EXIT_FAILURE);
-    }else {
-      if(arg.find_last_of('.')==std::string::npos || arg.substr(arg.find_last_of('.')) != ".bf") {
-        std::cerr << "Error: Source file must have a .bf extension." << std::endl;
-          exit(EXIT_FAILURE);
-      }
-      options.source_file_name = arg;
-    }
-  }
-
-  if(options.output_file_name.empty()) {
-    options.output_file_name = options.source_file_name.substr(0, options.source_file_name.find_last_of('.')) + ".asm";
-  }
-  if(options.target_arch==CompilerArch::UNKNOWN) {
-    getSystemArch();
-    options.target_arch = system_arch; // Default detected system architecture
-  }
-  if(options.max_cycles == 0) {
-    options.max_cycles = 1000000; // Default maximum cycles, i kind of not use this option but maybe?
-  }
-  if(options.max_memory == 0) {
-    options.max_memory = 30000; // Default maximum memory size
-  }
-  return options;
-}
-
-std::vector<Instruction> lexer(CompilerOptions options,std::map<InstructionType,uint16_t> &instructions_map) { 
-  FILE* file = fopen(options.source_file_name.c_str(), "rb");
-  if (!file) {
-    std::cerr << "Error: Could not open source file '" << options.source_file_name << "'." << std::endl;
-    exit(EXIT_FAILURE);
-  }
-  
-  fseek(file, 0, SEEK_END);
-  size_t size = ftell(file);
-  fseek(file, 0, SEEK_SET);
-  
-  char* buffer = (char*)malloc(size);
-  if (!buffer) {
-    fclose(file);
-    std::cerr << "Error: Lexer memory allocation failed." << std::endl;
-    exit(EXIT_FAILURE);
-  }
-  
-  // Read entire file
-  size_t read = fread(buffer, 1, size, file);
-  fclose(file);
-  
-  if (read != size) {
-    free(buffer);
-    std::cerr << "Error: Could not read the entire source file." << std::endl;
-    exit(EXIT_FAILURE);
-  }
-
-  //FILE * source_file = fileRead(options.source_file_name.c_str());
-  std::vector<Instruction> instructions;
-  //char ch;
-  uint64_t pc = 0;
-
-  if(options.debug)
-    options.optimize = false; 
-  
-  std::stack<uint64_t> cycle_stack;
-  int i=0;
-  while(i<size) {
-    Instruction instruction;
-    instruction.extra = 1; 
-    instruction.type = InstructionType::UNKNOWN; 
-
-    switch (buffer[i])
-    {
-    case '+':
-      while(buffer[i+1] == '+' && options.optimize) {
-        std::cout << "Optimizing ADD instruction at position " << i << std::endl;
-        instruction.extra++;
-        i++;
-      }
-      //if(ch != EOF) fseek(source_file, -1, SEEK_CUR); 
-      instruction.type = InstructionType::ADD;
-      instructions.push_back(instruction);
-      
-      break;
-    case '-':
-
-      while(buffer[i+1] == '-'&&options.optimize) {
-        instruction.extra++;
-        i++;
-      }
-      //if(ch != EOF) fseek(source_file, -1, SEEK_CUR); 
-      instruction.type = InstructionType::SUB;
-      instructions.push_back(instruction);
-      break;
-    case '.':
-
-      instruction.type = InstructionType::OUTPUT;
-      instructions.push_back(instruction);
-      break;
-    case ',':
-
-      instruction.type = InstructionType::INPUT;
-      instructions.push_back(instruction);
-      break;
-    case '>':
-
-      while(buffer[i+1] == '>'&&options.optimize) {
-        instruction.extra++;
-        i++;
-      }
-      //if(ch != EOF) fseek(source_file, -1, SEEK_CUR); 
-      instruction.type = InstructionType::INC;
-      instructions.push_back(instruction);
-      break;
-    case '<':
-      while(buffer[i+1] == '<'&&options.optimize) {
-        instruction.extra++;
-        i++;
-      }
-      //if(ch != EOF) fseek(source_file, -1, SEEK_CUR); 
-      instruction.type = InstructionType::DEC;
-      instructions.push_back(instruction);
-      break;
-    case '[':
-
-      instruction.type = InstructionType::BEQZ;
-      cycle_stack.push(pc); 
-      instructions.push_back(instruction);
-      break;
-    case ']':
-
-      if(cycle_stack.empty()) {
-        std::cerr << "Error: Unmatched ']' at program counter " << pc << std::endl;
-        exit(EXIT_FAILURE);
-      }
-      instruction.type = InstructionType::BNEQ;
-      instruction.extra = cycle_stack.top();
-      cycle_stack.pop();
-      instructions[instruction.extra].extra = pc; 
-      instructions.push_back(instruction);
-      break;
-    default:
-      break;
-    }
-    if(instruction.type != InstructionType::UNKNOWN) {
-      instructions_map[instruction.type] += 1; 
-      pc++;
-    }
-    i++;
-  }
-  if(!cycle_stack.empty()){
-    std::cerr << "Error: Unmatched '[' at program counter " << cycle_stack.top() << std::endl;
-    //fclose(source_file);
-    exit(EXIT_FAILURE);
-  }
-  free(buffer);
-  //fclose(source_file);
-  return instructions;
-}
-
-void hexDump(jit_code_t* jit) {
-  std::cout << "Generated machine code (" << jit->code_size << " bytes):" << std::endl;
-  for (size_t i = 0; i < jit->code_size; ++i) {
-    //printf("%02X ", (unsigned char)jit->code_buf[i]);
-    if(i % 16 == 15) {
-        std::cout << std::endl;
-    }
-  }
-  std::cout << std::endl;
-}
 
 void compiler(instructions_list instructions,CompilerOptions options){
   ArchitectureInterface *arch = getCompArch(options.target_arch);
@@ -332,7 +91,7 @@ void jit_compiler(instructions_list instructions,CompilerOptions options,std::ma
 
   uint64_t pc =0;
   jit_code_t*jit = create_JITCode(jitSize);
-
+  std::stack<uint32_t> branch_stack; // Stack to handle branches
   arch->proStart(jit);
   for(Instruction instruction : instructions){
     switch(instruction.type){
@@ -354,18 +113,22 @@ void jit_compiler(instructions_list instructions,CompilerOptions options,std::ma
       case InstructionType::OUTPUT:
         arch->output(jit);
       break;
+      case InstructionType::MOV0:
+        arch->mov0(jit);
+      break;
       case InstructionType::BEQZ:
 
         arch->beqz(jit);
-        instructions[instruction.extra].extra = jit->code_size; // Store the address of the bneq instruction
+        branch_stack.push(jit->code_size);
       break;
       case InstructionType::BNEQ:
+        uint32_t branch_address = branch_stack.top();
+        branch_stack.pop();
+        arch->bneq(jit,branch_address);
 
-        arch->bneq(jit,instruction.extra);
-
-        int32_t jump_distance = static_cast<int32_t>(jit->code_size - instruction.extra);
+        int32_t jump_distance = static_cast<int32_t>(jit->code_size - branch_address);
         
-        memcpy(jit->code_buf + instruction.extra-branch_adress_size, &jump_distance, INT32_S); // Patch the jump distance
+        memcpy(jit->code_buf + branch_address-branch_adress_size, &jump_distance, INT32_S); // Patch the jump distance
       break; 
     }
     pc++;
@@ -402,15 +165,51 @@ void jit_compiler(instructions_list instructions,CompilerOptions options,std::ma
   run(mem);
   //end = clock::now();
   //std::cout << "JIT execution completed in: " << duration_cast<nanoseconds>(end-start).count() << "ns" << std::endl;
-
+  verbose(options, "JIT execution completed successfully.");
   munmap(jit->code_buf, jitSize);
   free(mem);
   delete arch;
 }
 
 
+/**
+ * main optimisation passes:
+ * -  [-] || [+] -> move_0
+ * -  []
+ */
+void compilerPasses(instructions_list &instructions,CompilerOptions options) {
+  verbose(options, "Starting compiler passes for optimization.");
+  std::stack<uint32_t> branch_stack;
+  for(int j=0;j<instructions.size();j++){
+    Instruction i = instructions[j];
+    if(i.type==InstructionType::BEQZ){
+      branch_stack.push(j);
+    }
+    if(i.type==InstructionType::BNEQ){
+      
+      uint32_t branch_address = branch_stack.top();
+      branch_stack.pop();
+      int cas =j-branch_address;
+      if(cas==2){
+      }
+      switch(cas){
+        case OPT_MOV0:// move 0 instructions or find next free
+          if(instructions[j-1].type==InstructionType::ADD || instructions[j-1].type==InstructionType::SUB){
+            instructions[branch_address].type = InstructionType::MOV0;
+            instructions.erase(instructions.begin()+j-1);
+            instructions.erase(instructions.begin()+j-1);
+            j-=2; // Adjust index after erasing instructions
+          }
+        break;
+      }
+    }
+  }
 
-int main(int argc, char* argv[]) {
+}
+
+
+
+int main(int argc, char* argv[]){
   // using std::chrono::duration_cast;
   // using std::chrono::nanoseconds;
   // typedef std::chrono::high_resolution_clock clock;
@@ -443,6 +242,11 @@ int main(int argc, char* argv[]) {
     debug(instructions, options);
   }
   if(options.jit) {
+    if(options.optimize){
+      verbose(options, "Running compiler passes for optimization.");
+      compilerPasses(instructions, options);
+    }
+
     verbose(options, "Just-In-Time compilation enabled.");
     jit_compiler(instructions, options,instructions_map);
   }

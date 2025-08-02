@@ -15,6 +15,7 @@ enum InstructionType{
   OUTPUT = '.', 
   BNEQ = ']',  
   BEQZ = '[',  
+  MOV0 = '0',
   UNKNOWN = '?' // Unknown instruction 
 };
 typedef enum InstructionType InstructionType;
@@ -108,7 +109,7 @@ class JITInterface {
    * It's main function is to prepare the register that will handle the memory pointer.
    * @param jit Pointer to the JIT code structure.  
   */
-  virtual void proStart(jit_code_t *jit)=0;
+  virtual inline void proStart(jit_code_t *jit)=0;
     
   /**
    * @brief Virtual method to end a JIT program.
@@ -116,7 +117,7 @@ class JITInterface {
    * It typically includes the system call to exit the program.
    * @param jit Pointer to the JIT code structure.
   */
-  virtual void proEnd(jit_code_t *jit)=0;
+  virtual inline void proEnd(jit_code_t *jit)=0;
   
   /**
    * @brief Virtual method to increment the current cell value.
@@ -125,7 +126,7 @@ class JITInterface {
    * @param jit Pointer to the JIT code structure.
    * @param count The value to add to the current cell.
    */
-  virtual void add(jit_code_t *jit,uint8_t count)=0;
+  virtual inline void add(jit_code_t *jit,uint8_t count)=0;
     
   /**
    * @brief Virtual method to decrement the current cell value.
@@ -134,7 +135,7 @@ class JITInterface {
    * @param jit Pointer to the JIT code structure.
    * @param count The value to subtract to the current cell.
    */
-  virtual void sub(jit_code_t*jit,uint8_t count)=0;
+  virtual inline void sub(jit_code_t*jit,uint8_t count)=0;
     
   /**
    * @brief Virtual method to print the current cell as ASCII char.
@@ -142,7 +143,7 @@ class JITInterface {
    * It typically includes the system call to write to stdout.
    * @param jit Pointer to the JIT code structure.
    */
-  virtual void output(jit_code_t *jit)=0;
+  virtual inline void output(jit_code_t *jit)=0;
     
   /**
    * @brief Virtual method to take from input a value and store it in the current cell.
@@ -150,7 +151,7 @@ class JITInterface {
    * It typically includes the system call to read from stdout.
    * @param jit Pointer to the JIT code structure.
    */
-  virtual void input(jit_code_t *jit)=0;
+  virtual inline void input(jit_code_t *jit)=0;
     
   /**
    * @brief Virtual method to increment the current pointer.
@@ -159,7 +160,7 @@ class JITInterface {
    * @param jit Pointer to the JIT code structure.
    * @param count The value to increment the current pointer.
    */
-  virtual void inc(jit_code_t *jit,uint8_t count)=0;
+  virtual inline void inc(jit_code_t *jit,uint8_t count)=0;
     
   /**
    * @brief Virtual method to decrement the current pointer.
@@ -168,7 +169,7 @@ class JITInterface {
    * @param jit Pointer to the JIT code structure.
    * @param count The value to decrement the current pointer.
    */
-  virtual void dec(jit_code_t *jit,uint8_t count)=0;
+  virtual inline void dec(jit_code_t *jit,uint8_t count)=0;
   
   /**
    * @brief Virtual method to branch if the current cell is not equal to zero.
@@ -178,7 +179,7 @@ class JITInterface {
    * @param jump The address to jump to if the current cell is not equal to zero.
    * @note The logic used into the jit compiler is to assign the jump address of the bneq instruction during the compilation of the beqz instruction.
    */
-  virtual void bneq(jit_code_t *jit, uint32_t jump)=0;
+  virtual inline void bneq(jit_code_t *jit, uint32_t jump)=0;
     
   /**
    * @brief Virtual method to branch if the current cell is equal to zero.
@@ -187,7 +188,19 @@ class JITInterface {
    * @param jump The address to jump to if the current cell is not equal to zero.
    * @note The logic used into the jit compiler is to assigne the jump address of the beqz instruction during the compilation of the bneq instruction, because during the beqz instruction the jump address is not known yet.
    */
-  virtual void beqz(jit_code_t*jit)=0;
+  virtual inline void beqz(jit_code_t*jit)=0;
+
+  //OPTIMISATIONS
+  //  no need to implement these functions if optimisations is turned off
+
+
+  /**
+   * @brief Virtual method to move the current cell value to zero.
+   * This function takes a pointer to a JIT code structure and sets the current cell value to zero.
+   * @param jit Pointer to the JIT code structure.
+   * @note this is used to optimize [+] and [-] loops
+   */
+  virtual inline void mov0(jit_code_t *jit)=0;
 };
 
 #endif

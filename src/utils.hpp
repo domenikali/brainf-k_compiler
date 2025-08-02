@@ -59,4 +59,9 @@ typedef std::vector<Instruction> instructions_list;
 ArchitectureInterface * getCompArch(CompilerArch target_arch);
 JITInterface * getJITArch(CompilerArch target_arch);
 
+
+CompilerOptions getCompilerOptions(int argc, char* argv[]);
+void hexDump(jit_code_t* jit);
+
+
 #endif 
