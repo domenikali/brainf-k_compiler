@@ -17,6 +17,7 @@
 #include "lexer.hpp"
 
 #define OPT_MOV0 2 //the size of the move 0 instruction [+] or [-]
+#define OPT_ADDTO 5 // the size of the add to instruction [-<+>] || [->+<]
 #define INT32_S 4
 
 void compiler(instructions_list instructions,CompilerOptions options){
@@ -116,6 +117,9 @@ void jit_compiler(instructions_list instructions,CompilerOptions options,std::ma
       case InstructionType::MOV0:
         arch->mov0(jit);
       break;
+      case InstructionType::ADDTO:
+        arch->addto(jit,instruction.extra);
+      break;
       case InstructionType::BEQZ:
 
         arch->beqz(jit);
@@ -140,7 +144,7 @@ void jit_compiler(instructions_list instructions,CompilerOptions options,std::ma
   
   
   verbose(options, "Compilation completed successfully. Preparing memory for JIT execution.");
-  
+  //hexDump(jit);
   void *mem = calloc(options.max_memory, sizeof(uint8_t));
   if (mem == NULL) {
     std::cerr << "Error: Memory allocation failed." << std::endl;
@@ -166,8 +170,8 @@ void jit_compiler(instructions_list instructions,CompilerOptions options,std::ma
   //end = clock::now();
   //std::cout << "JIT execution completed in: " << duration_cast<nanoseconds>(end-start).count() << "ns" << std::endl;
   verbose(options, "JIT execution completed successfully.");
-  munmap(jit->code_buf, jitSize);
-  free(mem);
+  //munmap(jit->code_buf, jitSize);
+  //free(mem);
   delete arch;
 }
 
@@ -190,8 +194,7 @@ void compilerPasses(instructions_list &instructions,CompilerOptions options) {
       uint32_t branch_address = branch_stack.top();
       branch_stack.pop();
       int cas =j-branch_address;
-      if(cas==2){
-      }
+      
       switch(cas){
         case OPT_MOV0:// move 0 instructions or find next free
           if(instructions[j-1].type==InstructionType::ADD || instructions[j-1].type==InstructionType::SUB){
@@ -201,9 +204,29 @@ void compilerPasses(instructions_list &instructions,CompilerOptions options) {
             j-=2; // Adjust index after erasing instructions
           }
         break;
+        case OPT_ADDTO:// add current cell to n-th then zero current cell
+          if(((instructions[j-1].type==InstructionType::INC && instructions[j-3].type==InstructionType::DEC) || 
+          (instructions[j-1].type==InstructionType::DEC && instructions[j-3].type==InstructionType::INC)) &&
+          instructions[j-3].extra==instructions[j-1].extra&& instructions[j-2].type==InstructionType::ADD&&
+          instructions[j-4].type==InstructionType::SUB){
+            
+            instructions[j].type = InstructionType::ADDTO;
+            //to compute both [->-<] right and left [-<->] it's sufficent to change the signe of the operand
+            if(instructions[j-1].type==InstructionType::INC)instructions[j].extra = static_cast<uint8_t>(-instructions[j-1].extra);
+            else instructions[j].extra = static_cast<uint8_t>(instructions[j-1].extra);
+            
+            instructions.erase(instructions.begin()+j-5,instructions.begin()+j);
+            j-=5; 
+          }
+        break;
+
       }
     }
   }
+  // for(int k=0;k<instructions.size();k++){
+  //   std::cout << "Instruction " << k << ": Type = " << static_cast<char>(instructions[k].type) 
+  //             << ", Extra = " << static_cast<int>(instructions[k].extra )<< std::endl;
+  // }
 
 }
 

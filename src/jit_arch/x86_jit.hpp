@@ -120,6 +120,18 @@ class X86JIT:public JITInterface {
              "\xC6\x06\x00",3);                   // mov [rsi], 0
       jit->code_size += 3;
     };
+
+    inline void addto(jit_code_t *jit, uint8_t count)override{
+      check_size(jit, 8);
+      memcpy(jit->code_buf+jit->code_size, 
+             "\x8A\x06\x00"
+             "\x46",4);                           // add al, count; add the count to [rsi]
+      
+      memcpy(jit->code_buf+jit->code_size+4, &count, 1); // hex value
+      memcpy(jit->code_buf+jit->code_size+5,
+             "\xC6\x06\x00",3);                       // mov [rsi],0;
+      jit->code_size += 8;
+    };
 };
 
 #endif

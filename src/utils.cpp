@@ -179,7 +179,7 @@ CompilerOptions getCompilerOptions(int argc, char* argv[]) {
 void hexDump(jit_code_t* jit) {
   std::cout << "Generated machine code (" << jit->code_size << " bytes):" << std::endl;
   for (size_t i = 0; i < jit->code_size; ++i) {
-    //printf("%02X ", (unsigned char)jit->code_buf[i]);
+    printf("%02X ", ((unsigned char*)jit->code_buf)[i]);
     if(i % 16 == 15) {
         std::cout << std::endl;
     }

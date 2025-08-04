@@ -7,15 +7,16 @@
 #include <sys/mman.h>
 
 enum InstructionType{
-  ADD = '+',
-  SUB = '-',
-  INC = '>',    
-  DEC = '<',    
-  INPUT = ',',  
-  OUTPUT = '.', 
-  BNEQ = ']',  
-  BEQZ = '[',  
-  MOV0 = '0',
+  ADD     = '+',
+  SUB     = '-',
+  INC     = '>',    
+  DEC     = '<',    
+  INPUT   = ',',  
+  OUTPUT  = '.', 
+  BNEQ    = ']',  
+  BEQZ    = '[',  
+  MOV0    = '0',
+  ADDTO   = 'A',
   UNKNOWN = '?' // Unknown instruction 
 };
 typedef enum InstructionType InstructionType;
@@ -201,6 +202,15 @@ class JITInterface {
    * @note this is used to optimize [+] and [-] loops
    */
   virtual inline void mov0(jit_code_t *jit)=0;
+
+  /**
+   * @brief Virtual method to add the current cell value to the n-th previus cell.
+   * This function takes a pointer to a JIT code structure and adds the current cell value to the next cell.
+   * @param jit Pointer to the JIT code structure.
+   * @param count The value to add to the next cell.
+   * @note this is used to optimize [->..+<..] loops
+   */
+  virtual inline void addto(jit_code_t *jit, uint8_t count)=0;
 };
 
 #endif

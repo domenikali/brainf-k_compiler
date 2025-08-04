@@ -45,13 +45,13 @@ These benchmarks are kind of useless. My main interest is trying to optimize the
 
 All benches are inside the bench folder. Some are just to make sure the compiler works; others test specific areas.
 
-| Test            	| 0.0   	| 1.0 	| 1.1   | 1.2   |
-|-----------------	|-------	|-----	|----   |----   |
-| perf.bf         	| 3.90  	| 3.17  | 3.16  | 2.96  |
-| pi-16.bf        	| 0.211 	| 0.200 | 0.200 | 0.186 |  
-| golden-ratio.bf 	| 0.132 	| 0.126	| 0.126 | 0.125 |
-| yapi.bf           | 0.026     | 0.018 | 0.016 | 0.016 |
-| long.bf           | 4.627     | 4.533 | 4.477 | 1.603 |
+| Test            	| 0.0   	| 1.0 	| 1.1   | 1.2   | 1.3   |
+|-----------------	|-------	|-----	|----   |----   |----   |
+| perf.bf         	| 3.90  	| 3.17  | 3.16  | 2.96  | 2.313 |
+| pi-16.bf        	| 0.211 	| 0.200 | 0.200 | 0.186 | 0.165 |
+| golden-ratio.bf 	| 0.132 	| 0.126	| 0.126 | 0.125 | 0.122 |
+| yapi.bf           | 0.026   | 0.018 | 0.016 | 0.016 | 0.016 |
+| long.bf           | 4.627   | 4.533 | 4.477 | 1.603 | 0.743 |
 
 **Version 0.0**
 - Without any major optimization, just a standard instructions merging
@@ -64,6 +64,9 @@ All benches are inside the bench folder. Some are just to make sure the compiler
 
 **Version 1.2**
 - Optimized [+] and [-] to `mov [r], 0`
+
+**Version 1.3**
+- Optimised [->+<] and [-<+>] as `add to`, this implementation keep count of each `<` in order to count how many cells to move from
 
 ## Optimization Techniques
 
