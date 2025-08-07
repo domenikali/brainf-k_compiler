@@ -52,13 +52,13 @@ class ArchitectureInterface {
      * this function returns a string that represents the print operation in the specific architecture.
      * @return std::string representing the print operation.
     */
-    virtual std::string output(uint8_t count)=0;
+    virtual std::string output()=0;
     /**
      * @brief virtual function to read input into the current pointer value.
      * this function returns a string that represents the input operation in the specific architecture.
      * @return std::string representing the input operation.
     */
-    virtual std::string input(uint8_t count)=0;
+    virtual std::string input()=0;
     /**
      * @brief virtual function to increment the current pointer.
      * this function returns a string that represents the increment pointer operation in the specific architecture.

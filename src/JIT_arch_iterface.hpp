@@ -76,7 +76,7 @@ inline void JIT_append(jit_code_t*jit,const char * code, size_t cs){
     exit(EXIT_FAILURE);
   }
   
-  memcpy(jit->code_buf + jit->code_size, code, cs);
+  memcpy((char*)jit->code_buf + jit->code_size, code, cs);
   jit->code_size += cs;
 }
 
@@ -85,7 +85,7 @@ inline void JIT_reaplace(jit_code_t*jit, const char *code, size_t code_size,size
     std::cerr << "Error: JIT code buffer overflow at position " << pos << "." << std::endl;
     exit(EXIT_FAILURE);
   }
-  memcpy(jit->code_buf + pos, code, code_size);
+  memcpy((char*)jit->code_buf + pos, code, code_size);
 }
 
 /**
@@ -103,6 +103,9 @@ inline void JIT_reaplace(jit_code_t*jit, const char *code, size_t code_size,size
  */
 class JITInterface {
   public:
+
+  virtual ~JITInterface()= default;
+
     
   /**
    * @brief Virtual method to start a JIT program.

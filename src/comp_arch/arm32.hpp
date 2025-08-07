@@ -23,11 +23,11 @@ class ARM32: public ArchitectureInterface {
       return "ldrb r0, [r1]\nsub r0,r0,#"+std::to_string(count)+"\nstrb r0, [r1]\n";
     };
     
-    virtual std::string output(uint8_t count)override{
+    virtual std::string output()override{
       return "mov r7,#4\nmov r0,#1\nswi 0\n";
     };
     
-    virtual std::string input(uint8_t count)override{
+    virtual std::string input()override{
       return "mov r7,#3\nmov r0,#1\nswi 0\n";
     };
     

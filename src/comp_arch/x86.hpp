@@ -11,7 +11,7 @@ class X86: public ArchitectureInterface {
     };
     
     virtual std::string proEnd()override{
-      return "mov rax, 10\nmov [rsi], rax\n"+this->output(1)+"mov rax, 60\nmov rdi, 0\nsyscall\n";
+      return "mov rax, 10\nmov [rsi], rax\n"+this->output()+"mov rax, 60\nmov rdi, 0\nsyscall\n";
     };
     
     virtual std::string add(uint8_t count)override{
@@ -22,12 +22,12 @@ class X86: public ArchitectureInterface {
       return "mov rax, [rsi]\nsub rax, "+std::to_string(count)+"\nmov [rsi], rax\n";
     };
     
-    virtual std::string output(uint8_t count)override{
-      return "mov rax, 1\nmov rdx, "+std::to_string(count)+"\nsyscall\n";
+    virtual std::string output()override{
+      return "mov rax, 1\nmov rdx, 1\nsyscall\n";
     };
     
-    virtual std::string input(uint8_t count)override{
-      return "mov rax, 0\nmov rdx, "+std::to_string(count)+"\nsyscall\n";
+    virtual std::string input()override{
+      return "mov rax, 0\nmov rdx, 1\nsyscall\n";
     };
     
     virtual std::string inc(uint8_t count)override{

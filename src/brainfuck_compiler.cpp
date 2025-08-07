@@ -42,10 +42,10 @@ void compiler(instructions_list instructions,CompilerOptions options){
         program += arch->dec(instruction.extra);
       break;
       case InstructionType::INPUT:
-        program += arch->input(instruction.extra);
+        program += arch->input();
       break;
       case InstructionType::OUTPUT:
-        program += arch->output(instruction.extra);
+        program += arch->output();
       break;
       case InstructionType::BEQZ:
         program += arch->beqz(pc,instruction.extra);
@@ -132,7 +132,7 @@ void jit_compiler(instructions_list instructions,CompilerOptions options,std::ma
 
         int32_t jump_distance = static_cast<int32_t>(jit->code_size - branch_address);
         
-        memcpy(jit->code_buf + branch_address-branch_adress_size, &jump_distance, INT32_S); // Patch the jump distance
+        memcpy((char*)jit->code_buf + branch_address-branch_adress_size, &jump_distance, INT32_S); // Patch the jump distance
       break; 
     }
     pc++;
@@ -184,7 +184,7 @@ void jit_compiler(instructions_list instructions,CompilerOptions options,std::ma
 void compilerPasses(instructions_list &instructions,CompilerOptions options) {
   verbose(options, "Starting compiler passes for optimization.");
   std::stack<uint32_t> branch_stack;
-  for(int j=0;j<instructions.size();j++){
+  for(size_t j=0;j<instructions.size();j++){
     Instruction i = instructions[j];
     if(i.type==InstructionType::BEQZ){
       branch_stack.push(j);

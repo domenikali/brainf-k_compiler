@@ -20,7 +20,7 @@ class X86JIT:public JITInterface {
     }
     inline void proStart(jit_code_t *jit) override{
       check_size(jit, 8);
-      memcpy(jit->code_buf + jit->code_size, 
+      memcpy((char*)jit->code_buf + jit->code_size, 
         "\x48\x89\xFE"                          // mov rsi,rdi; move memory pointer to rsi
         "\xBF\x01\x00\x00\x00", 8);             // mov edi, 1; (signle byte) for optimisation purposes during read and write from and to stdout
       jit->code_size += 8;
@@ -28,18 +28,18 @@ class X86JIT:public JITInterface {
     
     inline void proEnd(jit_code_t *jit)override{
       check_size(jit, 1);
-      memcpy(jit->code_buf + jit->code_size, 
+      memcpy((char*)jit->code_buf + jit->code_size, 
               "\xC3",1);                   // ret           
       jit->code_size += 1;
     };
     
     inline void add(jit_code_t *jit,uint8_t count)override{
       check_size(jit, 6);
-      memcpy(jit->code_buf + jit->code_size, 
+      memcpy((char*)jit->code_buf + jit->code_size, 
               "\x8A\x06"                        // mov al, [rsi]; current cell value into al
               "\x04", 3);                       // add al, count; add the count to al
-      memcpy(jit->code_buf+jit->code_size+3, &count, 1);; // hex value
-      memcpy(jit->code_buf + jit->code_size + 4, 
+      memcpy((char*)jit->code_buf+jit->code_size+3, &count, 1);; // hex value
+      memcpy((char*)jit->code_buf + jit->code_size + 4, 
               "\x88\x06", 3);                   // mov [rsi], al; store back to tape
       jit->code_size += 6;
 
@@ -47,18 +47,18 @@ class X86JIT:public JITInterface {
     
     inline void sub(jit_code_t*jit,uint8_t count)override{
       check_size(jit, 6);
-      memcpy(jit->code_buf + jit->code_size,
+      memcpy((char*)jit->code_buf + jit->code_size,
               "\x8A\x06"                        // mov al, [rsi]; load current cell value into al
               "\x2C",3);                        // sub al, count; sub the count to al    
-      memcpy(jit->code_buf+jit->code_size+3, &count, 1); //hex value    
-      memcpy(jit->code_buf+jit->code_size+4,
+      memcpy((char*)jit->code_buf+jit->code_size+3, &count, 1); //hex value    
+      memcpy((char*)jit->code_buf+jit->code_size+4,
               "\x88\x06",3);                    // mov [rsi], al; store back to tape
       jit->code_size += 6;
     };
     
     inline void output(jit_code_t *jit)override{
       check_size(jit, 12);
-      memcpy(jit->code_buf+jit->code_size, 
+      memcpy((char*)jit->code_buf+jit->code_size, 
               "\xB8\x01\x00\x00\x00"             // mov eax, 1; (sys_write)  
               "\xBA\x01\x00\x00\x00"             // mov edx, 1; stdout file descriptor
               "\x0F\x05",12);                    // syscall; syscall
@@ -67,7 +67,7 @@ class X86JIT:public JITInterface {
     
     inline void input(jit_code_t *jit)override{
       check_size(jit, 12);
-      memcpy(jit->code_buf+jit->code_size,
+      memcpy((char*)jit->code_buf+jit->code_size,
              "\xB8\x00\x00\x00\x00"               // mov eax, 0; (sys_read)  
              "\xBA\x01\x00\x00\x00"               // mov edx, 1; number of bytes to write
              "\x0F\x05",12);                      // syscall; syscall   
@@ -77,24 +77,24 @@ class X86JIT:public JITInterface {
     
     inline void inc(jit_code_t *jit,uint8_t count)override{
       check_size(jit, 4);
-      memcpy(jit->code_buf+jit->code_size,
+      memcpy((char*)jit->code_buf+jit->code_size,
               "\x48\x83\xC6",3);                  // add rsi, count; increment tape pointer
-      memcpy(jit->code_buf+jit->code_size+3, &count, 1);
+      memcpy((char*)jit->code_buf+jit->code_size+3, &count, 1);
       jit->code_size += 4;
 
     };
     
     inline void dec(jit_code_t *jit,uint8_t count)override{
       check_size(jit, 4);
-      memcpy(jit->code_buf+jit->code_size,
+      memcpy((char*)jit->code_buf+jit->code_size,
               "\x48\x83\xEE",3);                  // sub rsi, count; decrement tape pointer
-      memcpy(jit->code_buf+jit->code_size+3, &count, 1);
+      memcpy((char*)jit->code_buf+jit->code_size+3, &count, 1);
       jit->code_size += 4;
     };
     
     inline void bneq(jit_code_t *jit, uint32_t jump)override{
       check_size(jit, 10);
-      memcpy(jit->code_buf+jit->code_size, 
+      memcpy((char*)jit->code_buf+jit->code_size, 
                     "\x8A\x06"                   // mov al, [rsi]; load current cell value into rax    
                     "\x3C\x00"                   // cmp al, 0; compare rax with 0 
                     "\x0F\x85",6);               // jne lable_jump; jump if not equal
@@ -102,12 +102,12 @@ class X86JIT:public JITInterface {
       // Calculate the offset for the jump
       int32_t offset = static_cast<int32_t>(jump - jit->code_size);
       // Write the offset to the code buffer
-      memcpy(jit->code_buf+jit->code_size-BRANCH_ADDRESS_SIZE, &offset, BRANCH_ADDRESS_SIZE); 
+      memcpy((char*)jit->code_buf+jit->code_size-BRANCH_ADDRESS_SIZE, &offset, BRANCH_ADDRESS_SIZE); 
     };
     
     inline void beqz(jit_code_t*jit)override{
       check_size(jit, 10);
-      memcpy(jit->code_buf+jit->code_size, 
+      memcpy((char*)jit->code_buf+jit->code_size, 
              "\x8A\x06"                           // mov al, [rsi]; load current cell value into rax    
              "\x3C\x00"                           // cmp al, 0; compare rax with 0 
              "\x0F\x84\x00\x00\x00\x00",10);      // je lable_jump; jump if equal
@@ -116,19 +116,19 @@ class X86JIT:public JITInterface {
 
     inline void mov0(jit_code_t *jit)override{
       check_size(jit, 3);
-      memcpy(jit->code_buf+jit->code_size, 
+      memcpy((char*)jit->code_buf+jit->code_size, 
              "\xC6\x06\x00",3);                   // mov [rsi], 0
       jit->code_size += 3;
     };
 
     inline void addto(jit_code_t *jit, uint8_t count)override{
       check_size(jit, 8);
-      memcpy(jit->code_buf+jit->code_size, 
+      memcpy((char*)jit->code_buf+jit->code_size, 
              "\x8A\x06\x00"
              "\x46",4);                           // add al, count; add the count to [rsi]
       
-      memcpy(jit->code_buf+jit->code_size+4, &count, 1); // hex value
-      memcpy(jit->code_buf+jit->code_size+5,
+      memcpy((char*)jit->code_buf+jit->code_size+4, &count, 1); // hex value
+      memcpy((char*)jit->code_buf+jit->code_size+5,
              "\xC6\x06\x00",3);                       // mov [rsi],0;
       jit->code_size += 8;
     };
