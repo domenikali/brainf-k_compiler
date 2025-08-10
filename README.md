@@ -45,13 +45,13 @@ These benchmarks are kind of useless. My main interest is trying to optimize the
 
 All benches are inside the bench folder. Some are just to make sure the compiler works; others test specific areas.
 
-| Test            	| 0.0   	| 1.0 	| 1.1   | 1.2   | 1.3   | 1.4 |
-|-----------------	|-------	|-----	|----   |----   |----   |...  |
-| perf.bf         	| 3.90  	| 3.17  | 3.16  | 2.96  | 2.313 |2.046|
-| pi-16.bf        	| 0.211 	| 0.200 | 0.200 | 0.186 | 0.165 |0.108|
-| golden-ratio.bf 	| 0.132 	| 0.126	| 0.126 | 0.125 | 0.122 |0.097|
-| yapi.bf           | 0.026   | 0.018 | 0.016 | 0.016 | 0.016 |0.015|
-| long.bf           | 4.627   | 4.533 | 4.477 | 1.603 | 0.743 |0.408|
+| Test            	| 0.0   	| 1.0 	| 1.1   | 1.2   | 1.3   |  1.4  |
+|-----------------	|-------	|-----	|----   |----   |----   |----   |
+| perf.bf         	| 3.90  	| 3.17  | 3.16  | 2.96  | 2.313 | 2.046 |
+| pi-16.bf        	| 0.211 	| 0.200 | 0.200 | 0.186 | 0.165 | 0.108 |
+| golden-ratio.bf 	| 0.132 	| 0.126	| 0.126 | 0.125 | 0.122 | 0.097 |
+| yapi.bf           | 0.026   | 0.018 | 0.016 | 0.016 | 0.016 | 0.015 |
+| long.bf           | 4.627   | 4.533 | 4.477 | 1.603 | 0.743 | 0.408 |
 
 **Version 0.0**
 - Without any major optimization, just a standard instructions merging
