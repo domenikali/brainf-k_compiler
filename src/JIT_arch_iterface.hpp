@@ -164,7 +164,7 @@ class JITInterface {
    * @param jit Pointer to the JIT code structure.
    * @param count The value to increment the current pointer.
    */
-  virtual inline void inc(jit_code_t *jit,uint8_t count)=0;
+  virtual inline void inc(jit_code_t *jit,uint32_t count)=0;
     
   /**
    * @brief Virtual method to decrement the current pointer.
@@ -173,7 +173,7 @@ class JITInterface {
    * @param jit Pointer to the JIT code structure.
    * @param count The value to decrement the current pointer.
    */
-  virtual inline void dec(jit_code_t *jit,uint8_t count)=0;
+  virtual inline void dec(jit_code_t *jit,uint32_t count)=0;
   
   /**
    * @brief Virtual method to branch if the current cell is not equal to zero.

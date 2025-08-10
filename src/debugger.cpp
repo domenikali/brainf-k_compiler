@@ -33,15 +33,15 @@ void debug(instructions_list instructions, CompilerOptions options) {
     Instruction instruction = instructions[pc];
     switch (instruction.type){
     case InstructionType::ADD:
-      fprintf(debug_file_name, "[PC %d]: Increased value at %ld from %u to %u.\n",pc, head, memory[head], memory[head]+1);
+      fprintf(debug_file_name, "[PC %ld]: Increased value at %ld from %u to %u.\n",pc, head, memory[head], memory[head]+1);
       memory[head]++;
       break;
     case InstructionType::SUB:
-      fprintf(debug_file_name, "[PC %d]: Decreased value at %ld from %u to %u.\n",pc, head, memory[head], memory[head]-1);
+      fprintf(debug_file_name, "[PC %ld]: Decreased value at %ld from %u to %u.\n",pc, head, memory[head], memory[head]-1);
       memory[head]--;
       break;
     case InstructionType::OUTPUT:
-      fprintf(debug_file_name, "[PC %d]: Printing: value at %ld = %c.\n",pc, head, memory[head]);
+      fprintf(debug_file_name, "[PC %ld]: Printing: value at %ld = %c.\n",pc, head, memory[head]);
       total_output += static_cast<char>(memory[head]);
       break;
     case InstructionType::INPUT:
@@ -49,11 +49,11 @@ void debug(instructions_list instructions, CompilerOptions options) {
       std::cout << "[PC " <<pc<<"]:Enter a character for input: ";
       std::cin >> input_char;
       memory[head] = static_cast<uint8_t>(input_char);
-      fprintf(debug_file_name, "[PC %d]: Input char %c at %ld\n", pc, input_char, head);
+      fprintf(debug_file_name, "[PC %ld]: Input char %c at %ld\n", pc, input_char, head);
       break;
     case InstructionType::INC:
       if(head + 1 >= options.max_memory) {
-        fprintf(debug_file_name, "[PC %d]: Pointer overflow at %ld. Max memory: %ld.\n", pc, head, options.max_memory);
+        fprintf(debug_file_name, "[PC %ld]: Pointer overflow at %ld. Max memory: %ld.\n", pc, head, options.max_memory);
         std::cerr << "Pointer overflow at " << head << ". Max memory: " << options.max_memory << ". Exit Error." << std::endl;
         goto ext;
       } else if(head + 1 >= size) {
@@ -62,33 +62,33 @@ void debug(instructions_list instructions, CompilerOptions options) {
         size += inc;
       }
 
-      fprintf(debug_file_name, "[PC %d]: Pointer increased from %ld to %ld.\n",pc, head, head+1);
+      fprintf(debug_file_name, "[PC %ld]: Pointer increased from %ld to %ld.\n",pc, head, head+1);
       head++;
       break;
     case InstructionType::DEC:
       if(head == 0) {
-        fprintf(debug_file_name, "[PC %d]: Pointer underflow at %ld.\n", pc, head);
+        fprintf(debug_file_name, "[PC %ld]: Pointer underflow at %ld.\n", pc, head);
         std::cerr << "Pointer underflow at " << head << ". Exit Error." << std::endl;
         goto ext;
       }
 
-      fprintf(debug_file_name, "[PC %d]: Pointer decremented from %ld to %ld.\n",pc, head, head-1);
+      fprintf(debug_file_name, "[PC %ld]: Pointer decremented from %ld to %ld.\n",pc, head, head-1);
       head--;
       break;
     case InstructionType::BEQZ:
       if(memory[head] == 0) {
-        fprintf(debug_file_name, "[PC %d]: Pointer at %ld is zero, jumping to %ld.\n", pc, head, instruction.extra);
+        fprintf(debug_file_name, "[PC %ld]: Pointer at %ld is zero, jumping to %d.\n", pc, head, instruction.extra);
         pc = instruction.extra; // Jump to the branch address
       } else {
-        fprintf(debug_file_name, "[PC %d]: Pointer at %ld is non-zero, continuing.\n", pc, head);
+        fprintf(debug_file_name, "[PC %ld]: Pointer at %ld is non-zero, continuing.\n", pc, head);
       }
       break;
     case InstructionType::BNEQ:
       if(memory[head] != 0) {
-        fprintf(debug_file_name, "[PC %d]: Pointer at %ld is non-zero, jumping to %ld.\n", pc, head, instruction.extra);
+        fprintf(debug_file_name, "[PC %ld]: Pointer at %ld is non-zero, jumping to %d.\n", pc, head, instruction.extra);
         pc = instruction.extra; // Jump to the branch address
       } else {
-        fprintf(debug_file_name, "[PC %d]: Pointer at %ld is zero, continuing.\n", pc, head);
+        fprintf(debug_file_name, "[PC %ld]: Pointer at %ld is zero, continuing.\n", pc, head);
       }
       break;
     
